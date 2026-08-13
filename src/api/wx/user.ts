@@ -37,7 +37,7 @@ export function updateUser(data: WxMpUser): Promise<AjaxResult> {
   })
 }
 
-// 从公众号获取粉丝列表（同步入库）
+// 从公众号同步粉丝（同步入库）
 export function syncUser(): Promise<AjaxResult> {
   return request({
     url: '/wx/user/sync',
@@ -52,13 +52,3 @@ export function delUser(id: number | number[]): Promise<AjaxResult> {
     method: 'delete'
   })
 }
-
-// 从公众号同步粉丝
-export function syncUser(): Promise<AjaxResult> {
-  return request({
-    url: '/wx/user/sync',
-    method: 'post'
-  })
-}
-
-
