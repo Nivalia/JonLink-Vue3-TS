@@ -184,8 +184,8 @@ function onFormCascaderChange(v: number | undefined) {
 function getList() {
   loading.value = true
   listPolicyArticle(quejlParams.value).then((res: any) => {
-    articleList.value = res.data?.rows ?? []
-    total.value = res.data?.total ?? 0
+    articleList.value = res.rows ?? []
+    total.value = res.total ?? 0
     loading.value = false
   })
 }

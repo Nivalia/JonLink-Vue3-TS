@@ -118,7 +118,7 @@ const { form, quejlParams, rules } = toRefs(data)
 function getList() {
   loading.value = true
   listPolicyCategory(quejlParams.value).then((res: any) => {
-    categoryList.value = res.data?.rows ?? []
+    categoryList.value = res.rows ?? []
     loading.value = false
   })
 }
