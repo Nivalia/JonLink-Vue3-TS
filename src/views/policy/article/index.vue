@@ -190,6 +190,11 @@ function getList() {
   })
 }
 
+function handleQuery() {
+  quejlParams.value.pageNum = 1
+  getList()
+}
+
 function resetQuery() {
   quejlParams.value = { pageNum: 1, pageSize: 10 }
   getList()

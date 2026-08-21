@@ -123,6 +123,11 @@ function getList() {
   })
 }
 
+function handleQuery() {
+  quejlParams.value.pageNum = 1
+  getList()
+}
+
 function getTree() {
   treePolicyCategory().then((res: any) => {
     const all = res.data ?? []
