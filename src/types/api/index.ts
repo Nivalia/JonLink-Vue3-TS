@@ -27,3 +27,7 @@ export * from "./monitor/online";
 
 // 代码生成模块
 export * from "./tool/gen";
+
+// 政策展示模块 (2026-08-22)
+export * from "./policy/category";
+export * from "./policy/article";
