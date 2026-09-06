@@ -53,4 +53,50 @@ export function verifyOrder(data: { orderNo: string; phone?: string; carNo?: str
   })
 }
 
+// 模板下载 / 失败清单导出 — 走 axios (自动带 Bearer token),不用 window.open (window.open 新 tab 不带 auth 头 → 后端 401)
+export function downloadImportTemplate(): Promise<BlobPart> {
+  return request({
+    url: '/wx/order/importTemplate',
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+export function downloadFailList(rowsJson: string): Promise<BlobPart> {
+  return request({
+    url: '/wx/order/exportFailList',
+    method: 'get',
+    params: { rowsJson },
+    responseType: 'blob'
+  })
+}
+export function listSyncCandidates(params: { startDate?: string; endDate?: string }): Promise<AjaxResult<any[]>> {
+  return request({
+    url: '/wx/order/syncCandidates',
+    method: 'get',
+    params
+  })
+}
+
+// 一键同步台账到订单 (source_type=2)
+export function syncFromLedger(ledgerIds: number[]): Promise<AjaxResult> {
+  return request({
+    url: '/wx/order/syncFromLedger',
+    method: 'post',
+    data: { ledgerIds }
+  })
+}
+
+// Excel 导入
+export function importOrderExcel(file: File): Promise<AjaxResult> {
+  const form = new FormData()
+  form.append('file', file)
+  return request({
+    url: '/wx/order/importExcel',
+    method: 'post',
+    headers: { 'Content-Type': 'multipart/form-data' },
+    data: form
+  })
+}
+
 

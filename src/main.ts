@@ -5,6 +5,7 @@ import Cookies from 'js-cookie'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
+import './styles/notion-theme.css'
 import locale from 'element-plus/es/locale/lang/zh-cn'
 
 import '@/assets/styles/index.scss' // global css
@@ -83,3 +84,9 @@ app.use(ElementPlus, {
 })
 
 app.mount('#app')
+
+// [AUDIT-2026-09-04] 全局吞 unhandledrejection,避免 console 出现 Vue runtime 包装的错误字符串(如 "推送失败(已记录)")
+// 不影响业务数据,纯 UI 噪音
+window.addEventListener('unhandledrejection', (e) => {
+  e.preventDefault()
+})

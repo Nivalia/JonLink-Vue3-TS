@@ -66,6 +66,8 @@ export interface JonlinkInsuranceLedger extends BaseEntity {
   upSettleNo?: string;
   /** 下游结算单号 */
   downSettleNo?: string;
+  /** 理赔备注 */
+  claimRemark?: string;
   /** 备注 */
   remark?: string;
   /** 创建者 */

@@ -30,6 +30,14 @@ export interface WxMpTemplate extends BaseEntity {
   example?: string;
   /** 状态 0停用 1启用(本地启停) */
   status?: string;
+  /** 关键词元数据 JSON */
+  keywordMeta?: string;
+  /** 链接类型 0无 1关联H5 2自定义URL */
+  urlType?: string;
+  /** 关联H5页面ID */
+  h5PageId?: number;
+  /** 自定义URL(支持 {ticket}) */
+  customUrl?: string;
   /** 备注 */
   remark?: string;
   /** 创建者 */

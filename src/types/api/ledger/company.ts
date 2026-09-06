@@ -16,10 +16,6 @@ export interface JonlinkInsuranceCompany extends BaseEntity {
   companyName?: string;
   /** 公司编码 */
   companyCode?: string;
-  /** 默认联系人(冗余) */
-  contactPerson?: string;
-  /** 联系电话(冗余) */
-  contactPhone?: string;
   /** 地址 */
   address?: string;
   /** 0停用 1启用 */

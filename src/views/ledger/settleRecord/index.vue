@@ -2,14 +2,11 @@
   <div class="app-container">
     <el-form :model="quejlParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
       <el-form-item label="方向" prop="direction">
-        <el-input
-          v-model="quejlParams.direction"
-          placeholder="请输入方向 0上游结费(收入) 1下游结费(支出)"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+        <el-select v-model="quejlParams.direction" placeholder="请选择方向" clearable>
+          <el-option v-for="dict in fin_direction" :key="dict.value" :label="dict.label" :value="dict.value" />
+        </el-select>
       </el-form-item>
-      <el-form-item label="关联台账行" prop="ledgerId">
+      <el-form-item label="关联台账" prop="ledgerId">
         <el-input
           v-model="quejlParams.ledgerId"
           placeholder="请输入关联台账行(单笔结算)"
@@ -47,7 +44,7 @@
           plain
           icon="Edit"
           :disabled="single"
-          @click="handleUpdate"
+          @click="handleUpdate()"
           v-hasPermi="['ledger:settleRecord:edit']"
         >修改</el-button>
       </el-col>
@@ -57,7 +54,7 @@
           plain
           icon="Delete"
           :disabled="multiple"
-          @click="handleDelete"
+          @click="handleDelete()"
           v-hasPermi="['ledger:settleRecord:remove']"
         >删除</el-button>
       </el-col>
@@ -82,7 +79,7 @@
           <dict-tag :options="led_settle_direction" :value="scope.row.direction"/>
         </template>
       </el-table-column>
-      <el-table-column label="关联台账行" align="center" prop="ledgerId" show-overflow-tooltip min-width="100" />
+      <el-table-column label="关联台账" align="center" prop="ledgerId" show-overflow-tooltip min-width="100" />
       <el-table-column label="保单号" align="center" prop="policyNo" show-overflow-tooltip min-width="100" />
       <el-table-column label="结算金额" align="center" prop="amount" show-overflow-tooltip min-width="100" />
       <el-table-column label="状态" align="center" prop="settleStatus" show-overflow-tooltip min-width="100" />
@@ -120,11 +117,13 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="方向" prop="direction">
-              <el-input v-model="form.direction" placeholder="请输入方向 0上游结费(收入) 1下游结费(支出)" />
+              <el-select v-model="form.direction" placeholder="请选择方向" style="width:100%">
+                <el-option v-for="dict in fin_direction" :key="dict.value" :label="dict.label" :value="dict.value" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="关联台账行" prop="ledgerId">
+            <el-form-item label="关联台账" prop="ledgerId">
               <el-input v-model="form.ledgerId" placeholder="请输入关联台账行(单笔结算)" />
             </el-form-item>
           </el-col>
@@ -135,7 +134,8 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="结算金额" prop="amount">
-              <el-input v-model="form.amount" placeholder="请输入结算金额(如上游=上游税后佣金, 下游=下游佣金)" />
+              <el-input v-model="form.amount" placeholder="请输入结算金额" />
+              <div v-if="amountHint" style="font-size:12px;color:#e6a23c;margin-top:4px">{{ amountHint }}</div>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -171,8 +171,13 @@
 </template>
 
 <script setup lang="ts" name="SettleRecord">
+import { ref, reactive, onMounted, computed } from 'vue'
 import type { JonlinkSettleRecord, SettleRecordQuejlParams } from "@/types/api/ledger/settleRecord"
 import { listSettleRecord, getSettleRecord, delSettleRecord, addSettleRecord, updateSettleRecord } from "@/api/ledger/settleRecord"
+import { parseTime } from "@/utils/jonlink"
+import { finDict } from '@/utils/financeDict'
+
+const { fin_direction } = useDict('fin_direction')
 
 const { proxy } = getCurrentInstance()
 
@@ -200,7 +205,7 @@ const data = reactive({
       { required: true, message: "结算单号(唯一)不能为空", trigger: "blur" }
     ],
     direction: [
-      { required: true, message: "方向 0上游结费(收入) 1下游结费(支出)不能为空", trigger: "blur" }
+      { required: true, message: "方向不能为空", trigger: "change" }
     ],
     ledgerId: [
       { required: true, message: "关联台账行(单笔结算)不能为空", trigger: "blur" }
@@ -218,6 +223,15 @@ const data = reactive({
 })
 
 const { quejlParams, form, rules } = toRefs(data)
+
+// 方向→金额提示
+const amountHint = computed(() => {
+  const hints: Record<string, string> = {
+    '0': '上游结算=上游税后佣金（收入）',
+    '1': '下游结算=下游佣金（支出）'
+  }
+  return hints[form.value.direction] || ''
+})
 
 /** 查询结算记录列表 */
 function getList() {
@@ -285,7 +299,7 @@ function handleAdd() {
 /** 修改按钮操作 */
 function handleUpdate(row: JonlinkSettleRecord) {
   reset()
-  const _id = row.id || ids.value[0]
+  const _id = (row && row.id) || ids.value[0]
   getSettleRecord(_id).then(response => {
     form.value = response.data
     open.value = true
@@ -316,13 +330,12 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row: JonlinkSettleRecord) {
-  const _ids = row.id || ids.value
+  const _ids = (row && row.id) || ids.value
   proxy.$modal.confirm('是否确认删除结算记录编号为"' + _ids + '"的数据项？').then(function() {
     return delSettleRecord(_ids)
   }).then(() => {
     getList()
-    proxy.$modal.msgSuccess("删除成功")
-  }).catch(() => {})
+    proxy.$modal.msgSuccess("删除成功") }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 导出按钮操作 */

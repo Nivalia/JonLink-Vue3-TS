@@ -1,0 +1,27 @@
+/* JonLink Notion Design System — extracted from _design/dashboards/*.html */
+:root {
+  --fg: rgba(0,0,0,0.95);
+  --fg-2: #31302e;
+  --fg-3: #615d59;
+  --fg-4: #a39e98;
+  --bg: #ffffff;
+  --bg-warm: #f6f5f4;
+  --bg-warm-2: #efece9;
+  --line: rgba(0,0,0,0.10);
+  --line-2: rgba(0,0,0,0.06);
+  --blue: #0075de;
+  --blue-d: #005bab;
+  --blue-l: #62aef0;
+  --blue-bg: #f2f9ff;
+  --teal: #2a9d99;
+  --green: #1aae39;
+  --orange: #dd5b00;
+  --pink: #ff64c8;
+  --purple: #5e4dc2;
+  --shadow-card: rgba(0,0,0,0.04) 0px 4px 18px, rgba(0,0,0,0.027) 0px 2.025px 7.847px, rgba(0,0,0,0.02) 0px 0.8px 2.925px;
+  --shadow-deep: rgba(0,0,0,0.01) 0px 1px 3px, rgba(0,0,0,0.02) 0px 3px 7px, rgba(0,0,0,0.04) 0px 14px 28px;
+  --r: 12px;
+  --r-sm: 6px;
+  --r-pill: 9999px;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}

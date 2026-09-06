@@ -48,6 +48,8 @@ const usePermissionStore = defineStore(
             this.setSidebarRouters(constantRoutes.concat(sidebarRoutes))
             this.setDefaultRoutes(sidebarRoutes)
             this.setTopbarRoutes(defaultRoutes)
+            // 关键: 后台返回的动态路由也要注册到 router, 否则 router-link 跳转无响应
+            sidebarRoutes.forEach(route => { router.addRoute(route) })
             resolve(rewriteRoutes)
           })
         })

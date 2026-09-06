@@ -4,10 +4,18 @@ import type { PageDomain, BaseEntity } from "../common";
 export interface UserQuejlParams extends PageDomain {
   /** 手机号(授权回填/手动更换) */
   phone?: string;
-  /** 昵称 */
+  /** 昵称(模糊) */
   nickname?: string;
-  /** 关注时间(重复关注刷新) */
-  subscribeTime?: string;
+  /** 关注状态 0否 1是 */
+  subscribe?: string;
+  /** 活跃度 1高 2中 3低(定时任务计算) */
+  activityLevel?: string;
+  /** 0扫码 1手动 2其它 */
+  bindSource?: string;
+  /** 关注起始日(关注时间区间起点, YYYY-MM-DD) */
+  subscribeTimeBegin?: string;
+  /** 关注结束日(关注时间区间终点, YYYY-MM-DD) */
+  subscribeTimeEnd?: string;
 }
 
 /** 粉丝管理配置信息 */

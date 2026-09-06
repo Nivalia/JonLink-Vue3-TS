@@ -80,7 +80,7 @@
                type="info"
                plain
                icon="Operation"
-               @click="handleJobLog"
+               @click="handleJobLog()"
                v-hasPermi="['monitor:job:query']"
             >日志</el-button>
          </el-col>
@@ -100,8 +100,8 @@
                <dict-tag :options="sys_job_group" :value="scope.row.jobGroup" />
             </template>
          </el-table-column>
-         <el-table-column label="调用目标字符串" align="center" prop="invokeTarget" :show-overflow-tooltip="true" />
-         <el-table-column label="cron执行表达式" align="center" prop="cronExpression" :show-overflow-tooltip="true" />
+         <el-table-column label="调用目标" align="center" prop="invokeTarget" :show-overflow-tooltip="true" />
+         <el-table-column label="cron" align="center" prop="cronExpression" :show-overflow-tooltip="true" />
          <el-table-column label="状态" align="center">
             <template #default="scope">
                <el-switch
@@ -180,7 +180,7 @@
                   </el-form-item>
                </el-col>
                <el-col :span="24">
-                  <el-form-item label="cron表达式" prop="cronExpression">
+                  <el-form-item label="cron" prop="cronExpression">
                      <el-input v-model="form.cronExpression" placeholder="请输入cron执行表达式">
                         <template #append>
                            <el-button type="primary" @click="handleShowCron">

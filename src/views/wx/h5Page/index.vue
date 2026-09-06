@@ -20,7 +20,7 @@
         <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['wx:h5Page:add']">新增</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['wx:h5Page:remove']">删除</el-button>
+        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete()" v-hasPermi="['wx:h5Page:remove']">删除</el-button>
       </el-col>
       <el-col :span="8">
         <span style="font-size: 12px; color: #8a94a6;">H5 页面为模板消息跳转目标，url_rule 中 {ticket} 推送时自动替换为 24h 防伪凭证</span>
@@ -110,7 +110,7 @@
         <el-form-item label="页面">
           <el-input :model-value="ticketForm.pageName" disabled />
         </el-form-item>
-        <el-form-item label="粉丝 openid">
+        <el-form-item label="openid">
           <el-select v-model="ticketForm.openid" filterable placeholder="选择粉丝（或手动输入）" allow-create style="width: 100%">
             <el-option v-for="f in fanList" :key="f.openid" :label="(f.nickname || f.phone || f.openid)" :value="f.openid" />
           </el-select>
@@ -205,7 +205,7 @@ function handleAdd() {
 
 function handleUpdate(row: any) {
   reset()
-  const _id = row.id || ids.value[0]
+  const _id = (row && row.id) || ids.value[0]
   getH5Page(_id).then((response: any) => {
     form.value = response.data
     open.value = true
@@ -234,13 +234,12 @@ function submitForm() {
 }
 
 function handleDelete(row: any) {
-  const _ids = row.id || ids.value
+  const _ids = (row && row.id) || ids.value
   proxy.$modal.confirm('是否确认删除H5页面编号为"' + _ids + '"的数据项？').then(() => {
     return delH5Page(_ids)
   }).then(() => {
     getList()
-    proxy.$modal.msgSuccess("删除成功")
-  }).catch(() => {})
+    proxy.$modal.msgSuccess("删除成功") }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 打开预览（ticket 缺失时提示） */
@@ -250,8 +249,8 @@ function openPreview(row: any) {
 
 /** 生成 ticket 链接 */
 function handleTicket(row: any) {
-  ticketForm.pageName = row.pageName
-  ticketForm.pagePath = row.pagePath
+  ticketForm.pageName = (row && row.pageName) || ''
+  ticketForm.pagePath = (row && row.pagePath) || ''
   ticketForm.openid = ""
   ticketForm.url = ""
   if (fanList.value.length === 0) {

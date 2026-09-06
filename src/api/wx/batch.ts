@@ -74,5 +74,14 @@ export function retryBatch(batchNo: string): Promise<AjaxResult> {
   })
 }
 
+// 批次核对(Stage 2 推送核对)
+export function checkBatch(batchNo: string): Promise<AjaxResult> {
+  return request({
+    url: '/wx/batch/check',
+    method: 'get',
+    params: { batchNo }
+  })
+}
+
 
 

@@ -156,11 +156,13 @@ function submitForm(): void {
         parentMenuId: info.value.parentMenuId
       }
       updateGenTable(genTable).then(res => {
-        proxy.$modal.msgSuccess(res.msg)
-        if (res.code === 200) {
-          close()
-        }
-      })
+              if (res.code === 200) {
+                proxy.$modal.msgSuccess(res.msg || '保存成功')
+                close()
+              } else {
+                proxy.$modal.msgError(res.msg || '保存失败')
+              }
+            })
     } else {
       proxy.$modal.msgError("表单校验未通过，请重新检查提交内容")
     }

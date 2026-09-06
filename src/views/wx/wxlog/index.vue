@@ -17,7 +17,7 @@
           @keyup.enter="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="粉丝openid" prop="fromUser">
+      <el-form-item label="openid" prop="fromUser">
         <el-input
           v-model="queryParams.fromUser"
           placeholder="请输入粉丝openid"
@@ -57,7 +57,7 @@
       <el-table-column label="主键" align="center" prop="id" show-overflow-tooltip min-width="70" />
       <el-table-column label="消息类型" align="center" prop="msgType" show-overflow-tooltip min-width="90" />
       <el-table-column label="事件" align="center" prop="event" show-overflow-tooltip min-width="120" />
-      <el-table-column label="粉丝openid" align="center" prop="fromUser" show-overflow-tooltip min-width="150" />
+      <el-table-column label="openid" align="center" prop="fromUser" show-overflow-tooltip min-width="150" />
       <el-table-column label="接收方" align="center" prop="toUser" show-overflow-tooltip min-width="120" />
       <el-table-column label="消息ID" align="center" prop="msgId" show-overflow-tooltip min-width="110" />
       <el-table-column label="场景值" align="center" prop="scene" show-overflow-tooltip min-width="100" />
@@ -90,7 +90,7 @@
         <el-descriptions-item label="消息类型">{{ detail.msgType }}</el-descriptions-item>
         <el-descriptions-item label="事件">{{ detail.event }}</el-descriptions-item>
         <el-descriptions-item label="消息ID">{{ detail.msgId }}</el-descriptions-item>
-        <el-descriptions-item label="粉丝openid">{{ detail.fromUser }}</el-descriptions-item>
+        <el-descriptions-item label="openid">{{ detail.fromUser }}</el-descriptions-item>
         <el-descriptions-item label="接收方">{{ detail.toUser }}</el-descriptions-item>
         <el-descriptions-item label="场景值">{{ detail.scene }}</el-descriptions-item>
         <el-descriptions-item label="事件Key">{{ detail.eventKey }}</el-descriptions-item>
@@ -164,7 +164,7 @@ function handleSelectionChange(selection: any[]) {
 
 /** 详情按钮操作 */
 function handleDetail(row: any) {
-  getWxLog(row.id).then(response => {
+  getWxLog((row && row.id) || 0).then(response => {
     detail.value = response.data
     detailOpen.value = true
   })
@@ -172,13 +172,12 @@ function handleDetail(row: any) {
 
 /** 删除按钮操作 */
 function handleDelete(row: any) {
-  const _ids = row.id || ids.value
+  const _ids = (row && row.id) || ids.value
   proxy.$modal.confirm('是否确认删除回调日志编号为"' + _ids + '"的数据项？').then(function() {
     return delWxLog(_ids)
   }).then(() => {
     getList()
-    proxy.$modal.msgSuccess("删除成功")
-  }).catch(() => {})
+    proxy.$modal.msgSuccess("删除成功") }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 清空按钮操作 */
@@ -187,8 +186,7 @@ function handleClear() {
     return clearWxLog()
   }).then(() => {
     getList()
-    proxy.$modal.msgSuccess("清空成功")
-  }).catch(() => {})
+    proxy.$modal.msgSuccess("清空成功") }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 getList()

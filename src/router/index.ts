@@ -53,6 +53,12 @@ export const constantRoutes = [
     component: () => import('@/views/h5/oauth.vue'),
     hidden: true
   },
+  // 核销 H5 表单页(扫码进入,公开,按 wx_fc_config 动态渲染字段)
+  {
+    path: '/h5/verify',
+    component: () => import('@/views/h5/verify.vue'),
+    hidden: true
+  },
   // 公众号粉丝端 H5 (无 Layout 外壳, 纯移动端, OAuth 授权回调落地)
   {
     path: '/h5/fan',

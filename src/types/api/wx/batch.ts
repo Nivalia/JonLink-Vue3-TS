@@ -24,6 +24,12 @@ export interface WxMpSendBatch extends BaseEntity {
   overdue?: number;
   /** 0处理中 1已完成 */
   status?: string;
+  /** 核对通过数 */
+  checkPassed?: number;
+  /** 核对失败数 */
+  checkFailed?: number;
+  /** 核对时间 */
+  checkTime?: string;
   /** 创建者 */
   createBy?: string;
   /** 创建时间 */

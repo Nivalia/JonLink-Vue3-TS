@@ -43,13 +43,33 @@ watch(() => device.value, () => {
   }
 })
 
-watchEffect(() => {
+// 防止初始渲染期（width 还没拿到）触发 mobile/desktop 切换造成侧栏闪烁
+const initialResizeDone = ref(false)
+let resizeTimer: ReturnType<typeof setTimeout> | null = null
+function applyResponsive(): void {
   if (width.value - 1 < WIDTH) {
     useAppStore().toggleDevice('mobile')
-    useAppStore().closeSideBar({ withoutAnimation: true })
+    useAppStore().closeSideBar({ withoutAnimation: !initialResizeDone.value })
   } else {
     useAppStore().toggleDevice('desktop')
+    // 桌面端：确保侧边栏展开，避免默认折叠导致的"一闪而过"问题
+    if (!useAppStore().sidebar.opened) {
+      useAppStore().toggleSideBar(true)
+    }
   }
+  initialResizeDone.value = true
+}
+onMounted(() => {
+  // 首次挂载时执行一次（无动画），后续 resize 走防抖
+  applyResponsive()
+  window.addEventListener('resize', () => {
+    if (resizeTimer) clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(applyResponsive, 150)
+  })
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', () => {})
+  if (resizeTimer) clearTimeout(resizeTimer)
 })
 
 function handleClickOutside(): void {
@@ -71,6 +91,7 @@ function setLayout() {
   position: relative;
   height: 100%;
   width: 100%;
+  display: flex;
 
   &.mobile.openSidebar {
     position: fixed;
@@ -78,9 +99,25 @@ function setLayout() {
   }
 }
 
+// 移动端：sidebar 走 drawer 覆盖，不参与 flex 布局
+.app-wrapper.mobile .sidebar-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 1001;
+}
+
 .main-container:has(.fixed-header) {
   height: 100vh;
   overflow: hidden;
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-container {
+  height: 100vh;
+  flex-shrink: 0;
 }
 
 .drawer-bg {

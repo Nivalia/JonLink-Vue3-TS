@@ -18,6 +18,7 @@
       :file-list="fileList"
       :on-preview="handlePictureCardPreview"
       :class="{ hide: fileList.length >= limit }"
+      :timeout="30000"
     >
       <el-icon class="avatar-uploader-icon"><plus /></el-icon>
     </el-upload>
@@ -78,7 +79,7 @@ const props = defineProps({
   // 大小限制(MB)
   fileSize: {
     type: Number,
-    default: 5
+    default: 10
   },
   // 文件类型, 例如['png', 'jpg', 'jpeg']
   fileType: {
@@ -164,12 +165,14 @@ function handleBeforeUpload(file: File): boolean {
   if (props.fileSize) {
     const isLt = file.size / 1024 / 1024 < props.fileSize
     if (!isLt) {
-      proxy.$modal.msgError(`上传头像图片大小不能超过 ${props.fileSize} MB!`)
+      proxy.$modal.msgError(`上传图片大小不能超过 ${props.fileSize} MB!`)
       return false
     }
   }
-  proxy.$modal.loading("正在上传图片，请稍候...")
   number.value++
+  if (number.value === 1) {
+    proxy.$modal.loading("正在上传图片，请稍候...")
+  }
   return true
 }
 
@@ -182,14 +185,11 @@ function handleExceed(): void {
 function handleUploadSuccess(res: UploadFileResult, file: any): void {
   if (res.code === 200) {
     uploadList.value.push({ name: res.fileName, url: res.fileName })
-    uploadedSuccessfully()
   } else {
-    number.value--
-    proxy.$modal.closeLoading()
-    proxy.$modal.msgError(res.msg)
+    proxy.$modal.msgError(res.msg || "上传图片失败")
     proxy.$refs.imageUpload.handleRemove(file)
-    uploadedSuccessfully()
   }
+  uploadedSuccessfully()
 }
 
 // 删除图片
@@ -215,9 +215,13 @@ function uploadedSuccessfully(): void {
 }
 
 // 上传失败
-function handleUploadError(): void {
-  proxy.$modal.msgError("上传图片失败")
-  proxy.$modal.closeLoading()
+function handleUploadError(err: any): void {
+  number.value--
+  if (number.value <= 0) {
+    number.value = 0
+    proxy.$modal.closeLoading()
+  }
+  proxy.$modal.msgError(err?.message || "上传图片失败，请检查网络连接")
 }
 
 // 预览

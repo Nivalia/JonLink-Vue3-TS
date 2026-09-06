@@ -30,12 +30,18 @@ export interface JonlinkProduct extends BaseEntity {
   typeId?: number;
   /** 险别名称(冗余) */
   typeName?: string;
-  /** 上游渠道(带出台账) */
+  /** 上游渠道商ID(引用 jonlink_channel.id) */
+  channelId?: number;
+  /** 上游渠道商名称(带出冗余) */
+  channelName?: string;
+  /** 上游渠道(冗余文本快照) */
   upChannel?: string;
   /** 上游专属返利% */
   upRate?: string;
   /** 下游专属返利% */
   downRate?: string;
+  /** 政策类型 0=上游政策 1=下游政策 */
+  policyType?: string;
   /** 是否扣税 0否 1是(保费/1.06计算) */
   deductTax?: string;
   /** 上下架 0下架 1上架 */

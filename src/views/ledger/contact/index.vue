@@ -1,24 +1,24 @@
 <template>
   <div class="app-container">
-    <el-form :model="quejlParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="联系人姓名" prop="contactName">
+    <el-form :model="quejlParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="70px" class="jl-search-form">
+      <el-form-item label="姓名" prop="contactName">
         <el-input
           v-model="quejlParams.contactName"
-          placeholder="请输入联系人姓名"
+          placeholder="联系人姓名"
           clearable
           @keyup.enter="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="联系电话" prop="phone">
+      <el-form-item label="电话" prop="phone">
         <el-input
           v-model="quejlParams.phone"
-          placeholder="请输入联系电话"
+          placeholder="联系电话"
           clearable
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item label="状态" prop="status">
-        <el-select v-model="quejlParams.status" placeholder="请选择状态 0停用 1启用" clearable>
+        <el-select v-model="quejlParams.status" placeholder="全部" clearable class="jl-select-status">
           <el-option
             v-for="dict in jonlink_enable_disable"
             :key="dict.value"
@@ -27,7 +27,7 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item>
+      <el-form-item class="jl-form-actions">
         <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
       </el-form-item>
@@ -49,7 +49,7 @@
           plain
           icon="Edit"
           :disabled="single"
-          @click="handleUpdate"
+          @click="handleUpdate()"
           v-hasPermi="['ledger:contact:edit']"
         >修改</el-button>
       </el-col>
@@ -59,7 +59,7 @@
           plain
           icon="Delete"
           :disabled="multiple"
-          @click="handleDelete"
+          @click="handleDelete()"
           v-hasPermi="['ledger:contact:remove']"
         >删除</el-button>
       </el-col>
@@ -78,7 +78,7 @@
     <el-table v-loading="loading" :data="contactList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="主键" align="center" prop="id" show-overflow-tooltip min-width="100" />
-      <el-table-column label="联系人姓名" align="center" prop="contactName" show-overflow-tooltip min-width="100" />
+      <el-table-column label="姓名" align="center" prop="contactName" show-overflow-tooltip min-width="100" />
       <el-table-column label="联系电话" align="center" prop="phone" show-overflow-tooltip min-width="100" />
       <el-table-column label="微信号" align="center" prop="wechat" show-overflow-tooltip min-width="100" />
       <el-table-column label="邮箱" align="center" prop="email" show-overflow-tooltip min-width="100" />
@@ -110,13 +110,14 @@
       <el-form ref="contactRef" :model="form" :rules="rules" label-width="110px">
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="联系人姓名" prop="contactName">
+            <el-form-item label="姓名" prop="contactName">
               <el-input v-model="form.contactName" placeholder="请输入联系人姓名" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="联系电话" prop="phone">
               <el-input v-model="form.phone" placeholder="请输入联系电话" />
+              <el-alert v-if="phoneDuplicate" title="该手机号已被其他联系人使用" type="warning" show-icon style="margin-top:4px" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -154,7 +155,7 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
+          <el-button type="primary" :disabled="phoneDuplicate" @click="submitForm">确 定</el-button>
           <el-button @click="cancel">取 消</el-button>
         </div>
       </template>
@@ -162,7 +163,58 @@
   </div>
 </template>
 
+<style scoped>
+/* 联系人管理 — 搜索栏美化 */
+.jl-search-form :deep(.el-form-item) {
+  margin-right: 16px;
+  margin-bottom: 12px;
+}
+.jl-search-form :deep(.el-form-item .el-input),
+.jl-search-form :deep(.el-form-item .el-select) {
+  width: 180px;
+}
+.jl-search-form :deep(.jl-select-status.el-select) {
+  width: 120px;
+}
+.jl-search-form :deep(.el-input__wrapper) {
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px var(--el-border-color) inset;
+  transition: box-shadow 0.18s ease;
+}
+.jl-search-form :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+}
+.jl-search-form :deep(.el-input.is-focus .el-input__wrapper) {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset, 0 0 0 3px rgba(64, 158, 255, 0.12);
+}
+.jl-search-form :deep(.el-form-item__label) {
+  font-size: 13px;
+  color: #606266;
+  font-weight: 500;
+  padding-right: 8px;
+  white-space: nowrap;
+}
+.jl-search-form :deep(.el-input__inner) {
+  height: 32px;
+  line-height: 32px;
+  font-size: 13px;
+}
+.jl-search-form :deep(.jl-form-actions .el-button) {
+  height: 32px;
+  padding: 0 14px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+.jl-search-form :deep(.jl-form-actions .el-button + .el-button) {
+  margin-left: 8px;
+}
+.jl-search-form :deep(.el-form-item__content) {
+  line-height: 32px;
+}
+</style>
+
 <script setup lang="ts" name="Contact">
+import { ref, reactive, onMounted, watch } from 'vue'
 import type { JonlinkContactPerson, ContactQuejlParams } from "@/types/api/ledger/contact"
 import { listContact, getContact, delContact, addContact, updateContact } from "@/api/ledger/contact"
 
@@ -202,6 +254,21 @@ const data = reactive({
 })
 
 const { quejlParams, form, rules } = toRefs(data)
+
+// 手机号重复校验
+const phoneDuplicate = ref(false)
+async function checkPhoneDuplicate() {
+  if (!form.value.phone) { phoneDuplicate.value = false; return }
+  try {
+    const r: any = await listContact({ pageNum: 1, pageSize: 200, phone: form.value.phone })
+    const exists = (r.rows || []).some((item: any) =>
+      item.phone === form.value.phone && item.id !== form.value.id
+    )
+    phoneDuplicate.value = exists
+  } catch { phoneDuplicate.value = false }
+}
+
+watch(() => form.value.phone, () => { checkPhoneDuplicate() })
 
 /** 查询联系人管理列表 */
 function getList() {
@@ -267,7 +334,7 @@ function handleAdd() {
 /** 修改按钮操作 */
 function handleUpdate(row: JonlinkContactPerson) {
   reset()
-  const _id = row.id || ids.value[0]
+  const _id = (row && row.id) || ids.value[0]
   getContact(_id).then(response => {
     form.value = response.data
     open.value = true
@@ -298,13 +365,12 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row: JonlinkContactPerson) {
-  const _ids = row.id || ids.value
+  const _ids = (row && row.id) || ids.value
   proxy.$modal.confirm('是否确认删除联系人管理编号为"' + _ids + '"的数据项？').then(function() {
     return delContact(_ids)
   }).then(() => {
     getList()
-    proxy.$modal.msgSuccess("删除成功")
-  }).catch(() => {})
+    proxy.$modal.msgSuccess("删除成功") }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 导出按钮操作 */

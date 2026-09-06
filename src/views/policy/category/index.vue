@@ -31,11 +31,19 @@
          <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
       </el-row>
 
-      <el-table v-loading="loading" :data="categoryList" row-key="id" :tree-props="{ children: 'children', hasChildren: 'hasChildren' }" @selection-change="handleSelectionChange">
+      <el-table v-loading="loading" :data="categoryList" row-key="id" :tree-props="{ children: 'children', hasChildren: 'hasChildren' }" @selection-change="handleSelectionChange" default-expand-all>
          <el-table-column type="selection" width="55" align="center" />
-         <el-table-column label="分类名称" prop="categoryName" />
-         <el-table-column label="排序" prop="sort" align="center" width="120" />
-         <el-table-column label="状态" prop="status" align="center" width="120">
+         <el-table-column label="分类名称" prop="categoryName" min-width="200">
+            <template #default="scope">
+               <span :style="{ paddingLeft: scope.row.parentId && scope.row.parentId !== 0 ? '20px' : '0' }">
+                  <el-tag v-if="!scope.row.parentId || scope.row.parentId === 0" type="primary" size="small">一级</el-tag>
+                  <el-tag v-else type="success" size="small">二级</el-tag>
+                  {{ scope.row.categoryName }}
+               </span>
+            </template>
+         </el-table-column>
+         <el-table-column label="排序" prop="sort" align="center" width="100" />
+         <el-table-column label="状态" prop="status" align="center" width="100">
             <template #default="scope">
                <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
             </template>
@@ -43,7 +51,7 @@
          <el-table-column label="创建时间" prop="createTime" align="center" width="180" />
          <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="240">
             <template #default="scope">
-               <el-button link type="primary" icon="Plus" v-if="(scope.row.parentId === 0 || scope.row.parentId == null)" @click="handleAdd(scope.row.id)" v-hasPermi="['policy:category:add']">新增二级</el-button>
+               <el-button link type="primary" icon="Plus" v-if="!scope.row.parentId || scope.row.parentId === 0" @click="handleAdd(scope.row.id)" v-hasPermi="['policy:category:add']">新增二级</el-button>
                <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['policy:category:edit']">修改</el-button>
                <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['policy:category:remove']">删除</el-button>
             </template>
@@ -54,7 +62,7 @@
       <el-dialog :title="title" v-model="open" width="560px" append-to-body>
          <el-form ref="categoryRef" :model="form" :rules="rules" label-width="100px">
             <el-form-item label="上级分类" prop="parentId">
-               <el-tree-select v-model="form.parentId" :data="categoryOptions" :props="{ value: 'id', label: 'categoryName', children: 'children' }" value-key="id" placeholder="不选即为一" clearable check-strictly style="width: 100%" />
+               <el-tree-select v-model="form.parentId" :data="categoryOptions" :props="{ value: 'id', label: 'categoryName', children: 'children' }" value-key="id" placeholder="不选即为一级" clearable check-strictly style="width: 100%" />
             </el-form-item>
             <el-form-item label="分类名称" prop="categoryName">
                <el-input v-model="form.categoryName" placeholder="请输入分类名称" />
@@ -107,7 +115,7 @@ const data = reactive<{
   rules: any
 }>({
   form: { status: '1', sort: 0, parentId: 0 } as PolicyCategory,
-  quejlParams: { pageNum: 1, pageSize: 10 },
+  quejlParams: { pageNum: 1, pageSize: 100 },
   rules: {
     categoryName: [{ required: true, message: '请输入分类名称', trigger: 'blur' }],
     status: [{ required: true, message: '请选择状态', trigger: 'change' }]
@@ -118,9 +126,25 @@ const { form, quejlParams, rules } = toRefs(data)
 function getList() {
   loading.value = true
   listPolicyCategory(quejlParams.value).then((res: any) => {
-    categoryList.value = res.rows ?? []
+    const list = res.rows ?? []
+    categoryList.value = buildTree(list)
     loading.value = false
   })
+}
+
+function buildTree(list: PolicyCategory[]): PolicyCategory[] {
+  const map = new Map<number, PolicyCategory & { children: PolicyCategory[] }>()
+  const roots: (PolicyCategory & { children: PolicyCategory[] })[] = []
+  list.forEach(item => map.set(item.id!, { ...item, children: [] }))
+  list.forEach(item => {
+    const node = map.get(item.id!)!
+    if (item.parentId && item.parentId !== 0 && map.has(item.parentId)) {
+      map.get(item.parentId)!.children.push(node)
+    } else {
+      roots.push(node)
+    }
+  })
+  return roots
 }
 
 function handleQuery() {
@@ -131,13 +155,12 @@ function handleQuery() {
 function getTree() {
   treePolicyCategory().then((res: any) => {
     const all = res.data ?? []
-    // select 用的根只能是一级
     categoryOptions.value = [{ id: 0, categoryName: '主类目', children: all } as any]
   })
 }
 
 function resetQuery() {
-  quejlParams.value = { pageNum: 1, pageSize: 10 }
+  quejlParams.value = { pageNum: 1, pageSize: 100 }
   getList()
 }
 
@@ -156,7 +179,7 @@ function handleAdd(parentId: number) {
   reset()
   if (parentId && parentId !== 0) form.value.parentId = parentId
   open.value = true
-  title.value = '新增政策分类'
+  title.value = parentId ? '新增二级分类' : '新增一级分类'
   getTree()
 }
 

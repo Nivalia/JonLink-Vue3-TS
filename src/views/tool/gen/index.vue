@@ -42,7 +42,7 @@
           plain
           icon="Download"
           :disabled="multiple"
-          @click="handleGenTable"
+          @click="handleGenTable()"
           v-hasPermi="['tool:gen:code']"
         >生成</el-button>
       </el-col>

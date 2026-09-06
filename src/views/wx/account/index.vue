@@ -23,7 +23,7 @@
           plain
           icon="Edit"
           :disabled="single"
-          @click="handleUpdate"
+          @click="handleUpdate()"
           v-hasPermi="['wx:account:edit']"
         >修改</el-button>
       </el-col>
@@ -33,7 +33,7 @@
           plain
           icon="Delete"
           :disabled="multiple"
-          @click="handleDelete"
+          @click="handleDelete()"
           v-hasPermi="['wx:account:remove']"
         >删除</el-button>
       </el-col>
@@ -62,18 +62,30 @@
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="主键" align="center" prop="id" show-overflow-tooltip min-width="100" />
       <el-table-column label="AppID" align="center" prop="appId" show-overflow-tooltip min-width="100" />
-      <el-table-column label="AppSecret" align="center" prop="appSecret" show-overflow-tooltip min-width="100" />
+      <el-table-column label="AppSecret" align="center" prop="appSecret" show-overflow-tooltip min-width="100">
+        <template #default="scope">
+          <span>{{ scope.row.appSecret || '-' }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="公众号名称" align="center" prop="name" show-overflow-tooltip min-width="100" />
-      <el-table-column label="配置Token" align="center" prop="token" show-overflow-tooltip min-width="100" />
-      <el-table-column label="消息加密密钥" align="center" prop="encodingAesKey" show-overflow-tooltip min-width="100" />
-      <el-table-column label="加密模式" align="center" prop="encryptMode" show-overflow-tooltip min-width="100" />
+      <el-table-column label="Token" align="center" prop="token" show-overflow-tooltip min-width="100" />
+      <el-table-column label="加密密钥" align="center" prop="encodingAesKey" show-overflow-tooltip min-width="100" />
+      <el-table-column label="加密模式" align="center" prop="encryptMode" show-overflow-tooltip min-width="100">
+        <template #default="scope">
+          <dict-tag :options="wx_encrypt_mode" :value="scope.row.encryptMode" />
+        </template>
+      </el-table-column>
       <el-table-column label="access_token" align="center" prop="accessToken" show-overflow-tooltip min-width="100" />
-      <el-table-column label="token过期时间" align="center" prop="tokenExpireTime" show-overflow-tooltip min-width="110">
+      <el-table-column label="过期时间" align="center" prop="tokenExpireTime" show-overflow-tooltip min-width="110">
         <template #default="scope">
           <span>{{ parseTime(scope.row.tokenExpireTime, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="状态" align="center" prop="status" show-overflow-tooltip min-width="100" />
+      <el-table-column label="状态" align="center" prop="status" show-overflow-tooltip min-width="100">
+        <template #default="scope">
+          <dict-tag :options="common_status" :value="scope.row.status" />
+        </template>
+      </el-table-column>
       <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip min-width="100" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="170">
         <template #default="scope">
@@ -102,27 +114,29 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="AppSecret" prop="appSecret">
-              <el-input v-model="form.appSecret" placeholder="请输入AppSecret(加密存储)" />
+              <el-input v-model="form.appSecret" placeholder="新增必填,编辑留空不覆盖(已加密存储)" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="公众号名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入公众号名称" />
+              <el-input v-model="form.name" :placeholder="fetchNameLoading ? '正在获取中...' : '输入AppID+Secret后自动获取'" :loading="fetchNameLoading" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="配置Token" prop="token">
+            <el-form-item label="Token" prop="token">
               <el-input v-model="form.token" placeholder="请输入服务器配置Token(验签)" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="消息加密密钥" prop="encodingAesKey">
+            <el-form-item label="加密密钥" prop="encodingAesKey">
               <el-input v-model="form.encodingAesKey" placeholder="请输入消息加密密钥(可空)" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="加密模式" prop="encryptMode">
-              <el-input v-model="form.encryptMode" placeholder="请输入加密模式 0明文 1加密" />
+              <el-select v-model="form.encryptMode" placeholder="请选择加密模式" style="width:100%">
+                <el-option v-for="dict in wx_encrypt_mode" :key="dict.value" :label="dict.label" :value="dict.value" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -131,7 +145,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="token过期时间" prop="tokenExpireTime">
+            <el-form-item label="过期时间" prop="tokenExpireTime">
               <el-date-picker clearable
                 v-model="form.tokenExpireTime"
                 type="date"
@@ -159,10 +173,11 @@
 
 <script setup lang="ts" name="Account">
 import type { WxMpAccount, AccountQuejlParams } from "@/types/api/wx/account"
-import { listAccount, getAccount, delAccount, addAccount, updateAccount } from "@/api/wx/account"
+import { listAccount, getAccount, delAccount, addAccount, updateAccount, fetchAccountInfo } from "@/api/wx/account"
 import request from "@/utils/request"
 
 const { proxy } = getCurrentInstance()
+const { wx_encrypt_mode, common_status } = proxy.useDict('wx_encrypt_mode', 'common_status')
 
 const accountList = ref<WxMpAccount[]>([])
 const open = ref<boolean>(false)
@@ -194,16 +209,16 @@ const data = reactive({
       { required: true, message: "服务器配置Token(验签)不能为空", trigger: "blur" }
     ],
     encodingAesKey: [
-      { required: true, message: "消息加密密钥(可空)不能为空", trigger: "blur" }
+      { required: false, message: "消息加密密钥不能为空", trigger: "blur" }
     ],
     encryptMode: [
-      { required: true, message: "加密模式 0明文 1加密不能为空", trigger: "blur" }
+      { required: true, message: "加密模式不能为空", trigger: "blur" }
     ],
     accessToken: [
       { required: true, message: "access_token不能为空", trigger: "blur" }
     ],
     status: [
-      { required: true, message: "状态 0停用 1启用不能为空", trigger: "change" }
+      { required: true, message: "状态不能为空", trigger: "change" }
     ],
   }
 })
@@ -248,6 +263,37 @@ function reset() {
   proxy.resetForm("accountRef")
 }
 
+/** AppID+Secret 填完后自动获取公众号名称 */
+const fetchNameLoading = ref<boolean>(false)
+async function handleFetchInfo() {
+  const appId = form.value.appId
+  const appSecret = form.value.appSecret
+  if (!appId || !appSecret || appId.length < 10 || appSecret.length < 10) {
+    return
+  }
+  fetchNameLoading.value = true
+  try {
+    const res = await fetchAccountInfo(appId, appSecret)
+    if (res.code === 200 && res.nickName) {
+      form.value.name = res.nickName
+      proxy.$modal.msgSuccess("已自动获取公众号名称：" + res.nickName)
+    } else {
+      proxy.$modal.msgWarning(res.msg || "未能获取公众号名称，请检查 AppID 和 AppSecret")
+    }
+  } catch (e) {
+    proxy.$modal.msgError("获取公众号信息失败")
+  } finally {
+    fetchNameLoading.value = false
+  }
+}
+
+// 监听 AppID 和 AppSecret 变化，两个都填完后自动获取名称
+watch(() => [form.value.appId, form.value.appSecret], ([id, secret]) => {
+  if (id && secret && id.length >= 10 && secret.length >= 10) {
+    handleFetchInfo()
+  }
+})
+
 /** 搜索按钮操作 */
 function handleQuery() {
   quejlParams.value.pageNum = 1
@@ -290,7 +336,7 @@ function handleAdd() {
 /** 修改按钮操作 */
 function handleUpdate(row: WxMpAccount) {
   reset()
-  const _id = row.id || ids.value[0]
+  const _id = (row && row.id) || ids.value[0]
   getAccount(_id).then(response => {
     form.value = response.data
     open.value = true
@@ -321,13 +367,12 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row: WxMpAccount) {
-  const _ids = row.id || ids.value
+  const _ids = (row && row.id) || ids.value
   proxy.$modal.confirm('是否确认删除账号配置编号为"' + _ids + '"的数据项？').then(function() {
     return delAccount(_ids)
   }).then(() => {
     getList()
-    proxy.$modal.msgSuccess("删除成功")
-  }).catch(() => {})
+    proxy.$modal.msgSuccess("删除成功") }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 导出按钮操作 */

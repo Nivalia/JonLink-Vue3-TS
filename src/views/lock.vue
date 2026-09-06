@@ -56,6 +56,7 @@ const particleCanvas = ref<HTMLCanvasElement | null>(null)
 let timer: any = null
 let animationId: any  = null
 let particles: any = []
+let resizeHandler: (() => void) | null = null
 
 const onAvatarError = (e: Event) => {
   (e.target as HTMLImageElement).src = defAva
@@ -116,6 +117,8 @@ const initParticles = () => {
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
   }
+  // 提一个 module 级 ref 让 onBeforeUnmount 能 removeEventListener
+  resizeHandler = resize
   resize()
   window.addEventListener('resize', resize)
 
@@ -168,6 +171,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   clearInterval(timer)
   cancelAnimationFrame(animationId)
+  if (resizeHandler) window.removeEventListener('resize', resizeHandler)
+  resizeHandler = null
 })
 </script>
 

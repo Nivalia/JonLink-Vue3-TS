@@ -49,7 +49,7 @@
           plain
           icon="Edit"
           :disabled="single"
-          @click="handleUpdate"
+          @click="handleUpdate()"
           v-hasPermi="['ledger:product:edit']"
         >修改</el-button>
       </el-col>
@@ -59,7 +59,7 @@
           plain
           icon="Delete"
           :disabled="multiple"
-          @click="handleDelete"
+          @click="handleDelete()"
           v-hasPermi="['ledger:product:remove']"
         >删除</el-button>
       </el-col>
@@ -77,18 +77,19 @@
 
     <el-table v-loading="loading" :data="productList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="主键" align="center" prop="id" show-overflow-tooltip min-width="100" />
-      <el-table-column label="产品名称" align="center" prop="productName" show-overflow-tooltip min-width="100" />
-      <el-table-column label="保险公司ID" align="center" prop="companyId" show-overflow-tooltip min-width="100" />
-      <el-table-column label="保险公司名称" align="center" prop="companyName" show-overflow-tooltip min-width="100" />
-      <el-table-column label="负责人ID" align="center" prop="contactId" show-overflow-tooltip min-width="100" />
+      <el-table-column label="产品名称" align="center" prop="productName" show-overflow-tooltip min-width="180" />
+      <el-table-column label="保险公司" align="center" prop="companyName" show-overflow-tooltip min-width="100" />
       <el-table-column label="负责人" align="center" prop="contactName" show-overflow-tooltip min-width="100" />
-      <el-table-column label="联系电话" align="center" prop="contactPhone" show-overflow-tooltip min-width="100" />
-      <el-table-column label="险别ID" align="center" prop="typeId" show-overflow-tooltip min-width="100" />
-      <el-table-column label="险别名称" align="center" prop="typeName" show-overflow-tooltip min-width="100" />
+      <el-table-column label="联系电话" align="center" prop="contactPhone" show-overflow-tooltip min-width="110" />
+      <el-table-column label="险别" align="center" prop="typeName" show-overflow-tooltip min-width="100" />
       <el-table-column label="上游渠道" align="center" prop="upChannel" show-overflow-tooltip min-width="100" />
-      <el-table-column label="上游专属返利%" align="center" prop="upRate" show-overflow-tooltip min-width="100" />
-      <el-table-column label="下游专属返利%" align="center" prop="downRate" show-overflow-tooltip min-width="100" />
+      <el-table-column label="返利率" align="center" prop="upRate" show-overflow-tooltip min-width="100" />
+      <el-table-column label="返利率" align="center" prop="downRate" show-overflow-tooltip min-width="100" />
+      <el-table-column label="政策类型" align="center" prop="policyType" show-overflow-tooltip min-width="100">
+        <template #default="scope">
+          <span>{{ scope.row.policyType === '0' ? '上游政策' : scope.row.policyType === '1' ? '下游政策' : scope.row.policyType }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="是否扣税" align="center" prop="deductTax" show-overflow-tooltip min-width="110">
         <template #default="scope">
           <dict-tag :options="led_yes_no" :value="scope.row.deductTax"/>
@@ -99,8 +100,7 @@
           <dict-tag :options="led_shelf_status" :value="scope.row.shelfStatus"/>
         </template>
       </el-table-column>
-      <el-table-column label="排序" align="center" prop="sort" show-overflow-tooltip min-width="100" />
-      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip min-width="100" />
+      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip min-width="320" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="280">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['ledger:product:edit']">修改</el-button>
@@ -155,18 +155,28 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="上游渠道" prop="upChannel">
-              <el-input v-model="form.upChannel" placeholder="请输入上游渠道" />
+            <el-form-item label="上游渠道" prop="channelId">
+              <el-select v-model="form.channelId" placeholder="请选择上游渠道商" clearable filterable style="width: 100%" @change="handleChannelChange">
+                <el-option v-for="ch in channelOptions" :key="ch.id" :label="ch.channelName" :value="ch.id" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="上游返利%" prop="upRate">
+            <el-form-item label="返利率" prop="upRate">
               <el-input v-model="form.upRate" placeholder="请输入上游专属返利%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="下游返利%" prop="downRate">
+            <el-form-item label="返利率" prop="downRate">
               <el-input v-model="form.downRate" placeholder="请输入下游专属返利%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="政策类型" prop="policyType">
+              <el-radio-group v-model="form.policyType">
+                <el-radio label="0">上游政策</el-radio>
+                <el-radio label="1">下游政策</el-radio>
+              </el-radio-group>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -208,6 +218,7 @@
 <script setup lang="ts" name="Product">
 import type { JonlinkProduct, ProductQuejlParams } from "@/types/api/ledger/product"
 import { listProduct, getProduct, delProduct, addProduct, updateProduct } from "@/api/ledger/product"
+import { listChannelOptions } from "@/api/ledger/channel"
 import request from "@/utils/request"
 
 const { proxy } = getCurrentInstance()
@@ -217,6 +228,7 @@ const productList = ref<JonlinkProduct[]>([])
 const companyList = ref<any[]>([])
 const typeList = ref<any[]>([])
 const contactList = ref<any[]>([])
+const channelOptions = ref<any[]>([])
 const open = ref<boolean>(false)
 const loading = ref<boolean>(true)
 const showSearch = ref<boolean>(true)
@@ -247,6 +259,9 @@ const data = reactive({
     ],
     downRate: [
       { required: true, message: "下游专属返利%不能为空", trigger: "blur" }
+    ],
+    policyType: [
+      { required: true, message: "政策类型不能为空", trigger: "change" }
     ],
     deductTax: [
       { required: true, message: "是否扣税 0否 1是(保费/1.06计算)不能为空", trigger: "blur" }
@@ -290,9 +305,12 @@ function reset() {
     contactPhone: null,
     typeId: null,
     typeName: null,
+    channelId: null,
+    channelName: null,
     upChannel: null,
     upRate: null,
     downRate: null,
+    policyType: "0",
     deductTax: null,
     shelfStatus: null,
     sort: null,
@@ -336,7 +354,7 @@ function handleAdd() {
 function handleUpdate(row: JonlinkProduct) {
   reset()
   loadSelectData()
-  const _id = row.id || ids.value[0]
+  const _id = (row && row.id) || ids.value[0]
   getProduct(_id).then(response => {
     form.value = response.data
     open.value = true
@@ -376,6 +394,22 @@ function handleContactChange(val: any) {
   form.value.contactPhone = c ? c.phone : null
 }
 
+/** 上游渠道商联动：带出名称 + 写入冗余 upChannel 文本 */
+function handleChannelChange(val: any) {
+  const ch = channelOptions.value.find((x: any) => x.id === val)
+  form.value.channelName = ch ? ch.channelName : null
+  form.value.upChannel = ch ? ch.channelName : null
+}
+
+/** 加载启用的渠道商（下拉用） */
+function loadChannelOptions() {
+  listChannelOptions().then((res: any) => {
+    channelOptions.value = res.data || res.rows || []
+  }).catch(() => {
+    channelOptions.value = []
+  })
+}
+
 /** 提交按钮 */
 function submitForm() {
   proxy.$refs["productRef"].validate((valid: boolean) => {
@@ -399,13 +433,12 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row: JonlinkProduct) {
-  const _ids = row.id || ids.value
+  const _ids = (row && row.id) || ids.value
   proxy.$modal.confirm('是否确认删除产品管理编号为"' + _ids + '"的数据项？').then(function() {
     return delProduct(_ids)
   }).then(() => {
     getList()
-    proxy.$modal.msgSuccess("删除成功")
-  }).catch(() => {})
+    proxy.$modal.msgSuccess("删除成功") }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 导出按钮操作 */
@@ -418,11 +451,11 @@ function handleExport() {
 /** 上架/下架 */
 function handleShelf(row: JonlinkProduct, status: string) {
   const text = status === '1' ? '上架' : '下架'
-  proxy.$modal.confirm('确认' + text + '产品【' + row.productName + '】？').then(function() {
+  proxy.$modal.confirm('确认' + text + '产品【' + ((row && row.productName) || '') + '】？').then(function() {
     return request({
       url: '/ledger/product/shelf',
       method: 'put',
-      data: { id: row.id, shelfStatus: status }
+      data: { id: (row && row.id) || '', shelfStatus: status }
     })
   }).then((res: any) => {
     if (res.code === 200) {
@@ -431,8 +464,9 @@ function handleShelf(row: JonlinkProduct, status: string) {
     } else {
       proxy.$modal.msgError(res.msg)
     }
-  }).catch(() => {})
+  }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 getList()
+loadChannelOptions()
 </script>

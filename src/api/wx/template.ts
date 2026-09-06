@@ -44,4 +44,20 @@ export function delTemplate(id: number | number[]): Promise<AjaxResult> {
   })
 }
 
+// 同步模板(从微信拉取, mock 模式下走补全 keyword_meta 路径)
+export function syncTemplate(): Promise<AjaxResult> {
+  return request({
+    url: '/wx/mp/template/sync',
+    method: 'post'
+  })
+}
+
+// 模板可选 H5 页面下拉
+export function h5PageOptions(): Promise<AjaxResult<{ id: number; pageName: string; pagePath: string }[]>> {
+  return request({
+    url: '/wx/template/h5PageOptions',
+    method: 'get'
+  })
+}
+
 

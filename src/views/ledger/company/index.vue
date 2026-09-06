@@ -41,7 +41,7 @@
           plain
           icon="Edit"
           :disabled="single"
-          @click="handleUpdate"
+          @click="handleUpdate()"
           v-hasPermi="['ledger:company:edit']"
         >修改</el-button>
       </el-col>
@@ -51,7 +51,7 @@
           plain
           icon="Delete"
           :disabled="multiple"
-          @click="handleDelete"
+          @click="handleDelete()"
           v-hasPermi="['ledger:company:remove']"
         >删除</el-button>
       </el-col>
@@ -72,9 +72,6 @@
       <el-table-column label="主键" align="center" prop="id" show-overflow-tooltip min-width="100" />
       <el-table-column label="公司名称" align="center" prop="companyName" show-overflow-tooltip min-width="100" />
       <el-table-column label="公司编码" align="center" prop="companyCode" show-overflow-tooltip min-width="100" />
-      <el-table-column label="默认联系人" align="center" prop="contactPerson" show-overflow-tooltip min-width="100" />
-      <el-table-column label="联系电话" align="center" prop="contactPhone" show-overflow-tooltip min-width="100" />
-      <el-table-column label="地址" align="center" prop="address" show-overflow-tooltip min-width="100" />
       <el-table-column label="状态" align="center" prop="status" show-overflow-tooltip min-width="110">
         <template #default="scope">
           <dict-tag :options="jonlink_enable_disable" :value="scope.row.status"/>
@@ -109,21 +106,6 @@
           <el-col :span="12">
             <el-form-item label="公司编码" prop="companyCode">
               <el-input v-model="form.companyCode" placeholder="请输入公司编码" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="默认联系人" prop="contactPerson">
-              <el-input v-model="form.contactPerson" placeholder="请输入默认联系人(冗余)" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="联系电话" prop="contactPhone">
-              <el-input v-model="form.contactPhone" placeholder="请输入联系电话(冗余)" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="地址" prop="address">
-              <el-input v-model="form.address" placeholder="请输入地址" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -219,9 +201,6 @@ function reset() {
     id: null,
     companyName: null,
     companyCode: null,
-    contactPerson: null,
-    contactPhone: null,
-    address: null,
     status: null,
     remark: null,
     createBy: null,
@@ -261,7 +240,7 @@ function handleAdd() {
 /** 修改按钮操作 */
 function handleUpdate(row: JonlinkInsuranceCompany) {
   reset()
-  const _id = row.id || ids.value[0]
+  const _id = (row && row.id) || ids.value[0]
   getCompany(_id).then(response => {
     form.value = response.data
     open.value = true
@@ -292,13 +271,12 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row: JonlinkInsuranceCompany) {
-  const _ids = row.id || ids.value
+  const _ids = (row && row.id) || ids.value
   proxy.$modal.confirm('是否确认删除保险公司编号为"' + _ids + '"的数据项？').then(function() {
     return delCompany(_ids)
   }).then(() => {
     getList()
-    proxy.$modal.msgSuccess("删除成功")
-  }).catch(() => {})
+    proxy.$modal.msgSuccess("删除成功") }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 导出按钮操作 */

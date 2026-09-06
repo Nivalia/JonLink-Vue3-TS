@@ -44,4 +44,13 @@ export function delAccount(id: number | number[]): Promise<AjaxResult> {
   })
 }
 
+// 根据 AppID + Secret 获取公众号信息
+export function fetchAccountInfo(appId: string, appSecret: string): Promise<AjaxResult> {
+  return request({
+    url: '/wx/account/fetchInfo',
+    method: 'get',
+    params: { appId, appSecret }
+  })
+}
+
 

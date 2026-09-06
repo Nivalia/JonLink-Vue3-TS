@@ -41,6 +41,15 @@ export function updateUser(data: WxMpUser): Promise<AjaxResult> {
 export function syncUser(): Promise<AjaxResult> {
   return request({
     url: '/wx/user/sync',
+    method: 'post',
+    timeout: 120000
+  })
+}
+
+// 业务员↔粉丝手机号关联同步
+export function syncDistFan(): Promise<AjaxResult> {
+  return request({
+    url: '/wx/user/syncDistFan',
     method: 'post'
   })
 }

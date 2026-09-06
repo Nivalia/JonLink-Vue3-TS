@@ -80,6 +80,8 @@
 import Fuse from 'fuse.js'
 import { getNormalPath } from '@/utils/jonlink'
 import { isHttp } from '@/utils/validate'
+// [AUDIT-2026-09-04] XSS 防护
+import DOMPurify from 'dompurify'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
 
@@ -226,10 +228,19 @@ function selectActiveResult(): void {
 
 function highlightText(text: string): string {
   if (!text) return ''
-  if (!search.value) return text
+  if (!search.value) return DOMPurify.sanitize(text, { USE_PROFILES: { html: true } })
+  // [AUDIT-2026-09-04] 先转义菜单名/路径,再插入高亮 span,最后 DOMPurify 过滤
+  const safeText = String(text).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  } as Record<string, string>)[c])
   const keyword = escapeRegExp(search.value)
   const reg = new RegExp(`(${keyword})`, 'gi')
-  return text.replace(reg, '<span class="highlight">$1</span>')
+  const highlighted = safeText.replace(reg, '<span class="highlight">$1</span>')
+  return DOMPurify.sanitize(highlighted, {
+    USE_PROFILES: { html: true },
+    ALLOWED_ATTR: ['class'],
+    ALLOWED_TAGS: ['span']
+  })
 }
 
 function escapeRegExp(str: string): string {

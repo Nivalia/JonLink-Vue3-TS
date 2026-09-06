@@ -23,7 +23,7 @@
           plain
           icon="Edit"
           :disabled="single"
-          @click="handleUpdate"
+          @click="handleUpdate()"
           v-hasPermi="['wx:batch:edit']"
         >修改</el-button>
       </el-col>
@@ -33,7 +33,7 @@
           plain
           icon="Delete"
           :disabled="multiple"
-          @click="handleDelete"
+          @click="handleDelete()"
           v-hasPermi="['wx:batch:remove']"
         >删除</el-button>
       </el-col>
@@ -55,6 +55,16 @@
           v-hasPermi="['wx:batch:add']"
         >Excel导入</el-button>
       </el-col>
+      <el-col :span="1.5">
+        <el-button
+          type="warning"
+          plain
+          icon="CircleCheck"
+          :disabled="single"
+          @click="handleCheck()"
+          v-hasPermi="['wx:batch:edit']"
+        >核对</el-button>
+      </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
@@ -71,6 +81,14 @@
       <el-table-column label="状态" align="center" prop="status" show-overflow-tooltip min-width="110">
         <template #default="scope">
           <dict-tag :options="wx_send_batch_status" :value="scope.row.status"/>
+        </template>
+      </el-table-column>
+      <el-table-column label="核对状态" align="center" min-width="110">
+        <template #default="scope">
+          <el-tag v-if="scope.row.checkPassed !== undefined" :type="scope.row.checkPassed === scope.row.total ? 'success' : (scope.row.checkPassed > 0 ? 'warning' : 'danger')">
+            通过 {{ scope.row.checkPassed || 0 }} / 失败 {{ scope.row.checkFailed || 0 }}
+          </el-tag>
+          <el-tag v-else type="info">未核对</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip min-width="100" />
@@ -172,7 +190,7 @@
         <el-form-item v-if="importForm.templateId" label="模板文件">
           <el-button link type="primary" icon="Download" @click="handleDownloadTpl">下载导入模板(Excel)</el-button>
         </el-form-item>
-        <el-form-item label="Excel文件" prop="file">
+        <el-form-item label="文件" prop="file">
           <el-upload
             ref="uploadRef"
             drag
@@ -202,7 +220,7 @@
 
 <script setup lang="ts" name="Batch">
 import type { WxMpSendBatch, BatchQuejlParams } from "@/types/api/wx/batch"
-import { listBatch, getBatch, delBatch, addBatch, updateBatch, downloadBatchTemplate, importBatch, retryBatch } from "@/api/wx/batch"
+import { listBatch, getBatch, delBatch, addBatch, updateBatch, downloadBatchTemplate, importBatch, retryBatch, checkBatch } from "@/api/wx/batch"
 import { listTemplate } from "@/api/wx/template"
 
 const { proxy } = getCurrentInstance()
@@ -290,8 +308,8 @@ function submitImport() {
 
 /** 批次重推 */
 function handleRetry(row: WxMpSendBatch) {
-  proxy.$modal.confirm('确认重推批次 "' + row.batchNo + '" 的失败/待发行？').then(function() {
-    return retryBatch(row.batchNo)
+  proxy.$modal.confirm('确认重推批次 "' + ((row && row.batchNo) || '') + '" 的失败/待发行？').then(function() {
+    return retryBatch(((row && row.batchNo) || ''))
   }).then(res => {
     if (res.code === 200) {
       const d = res.data || {}
@@ -300,7 +318,44 @@ function handleRetry(row: WxMpSendBatch) {
     } else {
       proxy.$modal.msgError(res.msg || "重推失败")
     }
-  }).catch(() => {})
+  }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
+}
+
+function handleCheck(row?: WxMpSendBatch) {
+  // 工具栏触发: row 不传, 用当前选中的行(只支持 1 行)
+  // 注意: template 里 @click="handleCheck" 没带括号, vue 会把 MouseEvent 作为第 1 个参数传入!
+  // 因此这里要把 event 对象识别出来并当作 undefined 处理
+  if (row && (row as any).batchNo === undefined && (row as any).target && (row as any).preventDefault) {
+    // 是 MouseEvent 不是 WxMpSendBatch
+    row = undefined
+  }
+  if (!row) {
+    if (ids.value.length !== 1) {
+      proxy.$modal.msgWarning('请先选择一行')
+      return
+    }
+    row = batchList.value.find(b => b.id === ids.value[0])
+    if (!row) {
+      proxy.$modal.msgWarning('未找到选中行, ids=' + JSON.stringify(ids.value) + ' list ids=' + JSON.stringify(batchList.value.map(b => b.id)))
+      return
+    }
+  }
+  const target = row
+  // 防御: 若上游状态异常导致 batchNo 缺失, 直接拦截, 避免后端"批次号不能为空"误报
+  if (!target || !target.batchNo) {
+    proxy.$modal.msgWarning('该行缺少批次号,无法核对')
+    return
+  }
+  proxy.$modal.confirm('确认核对批次 "' + target.batchNo + '" 的所有待发推送？\n核对会按模板 bizField 与订单实际值对比，标记通过/失败。').then(function() {
+    return checkBatch(target.batchNo)
+  }).then(res => {
+    if (res.code === 200) {
+      proxy.$modal.msgSuccess(res.msg || '核对完成')
+      getList()
+    } else {
+      proxy.$modal.msgError(res.msg || '核对失败')
+    }
+  }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 const data = reactive({
@@ -405,7 +460,7 @@ function handleAdd() {
 /** 修改按钮操作 */
 function handleUpdate(row: WxMpSendBatch) {
   reset()
-  const _id = row.id || ids.value[0]
+  const _id = (row && row.id) || ids.value[0]
   getBatch(_id).then(response => {
     form.value = response.data
     open.value = true
@@ -436,13 +491,12 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row: WxMpSendBatch) {
-  const _ids = row.id || ids.value
+  const _ids = (row && row.id) || ids.value
   proxy.$modal.confirm('是否确认删除发送批次编号为"' + _ids + '"的数据项？').then(function() {
     return delBatch(_ids)
   }).then(() => {
     getList()
-    proxy.$modal.msgSuccess("删除成功")
-  }).catch(() => {})
+    proxy.$modal.msgSuccess("删除成功") }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 导出按钮操作 */

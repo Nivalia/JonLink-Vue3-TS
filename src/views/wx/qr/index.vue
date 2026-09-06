@@ -48,7 +48,7 @@
           plain
           icon="Edit"
           :disabled="single"
-          @click="handleUpdate"
+          @click="handleUpdate()"
           v-hasPermi="['wx:qr:edit']"
         >修改</el-button>
       </el-col>
@@ -58,7 +58,7 @@
           plain
           icon="Delete"
           :disabled="multiple"
-          @click="handleDelete"
+          @click="handleDelete()"
           v-hasPermi="['wx:qr:remove']"
         >删除</el-button>
       </el-col>
@@ -76,7 +76,7 @@
 
     <el-table v-loading="loading" :data="qrList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="场景值scene" align="center" prop="sceneId" show-overflow-tooltip min-width="100" />
+      <el-table-column label="scene" align="center" prop="sceneId" show-overflow-tooltip min-width="100" />
       <el-table-column label="二维码" align="center" width="76">
         <template #default="scope">
           <QrImg v-if="scope.row.qrUrl" :content="scope.row.qrUrl" :size="42" clickable @click="showQrPreview(scope.row)" />
@@ -158,7 +158,7 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="12">
-                    <el-form-item label="有效期(天)">
+                    <el-form-item label="有效期">
                       <el-input-number v-model="genExpireDays" :min="1" :max="30" controls-position="right" style="width:100%" />
                     </el-form-item>
                   </el-col>
@@ -179,7 +179,7 @@
             </template>
             <el-row :gutter="16">
               <el-col :span="12">
-                <el-form-item label="场景值scene" prop="sceneId">
+                <el-form-item label="scene" prop="sceneId">
                   <el-input v-model="form.sceneId" placeholder="请输入场景值scene(唯一)" />
                 </el-form-item>
               </el-col>
@@ -199,7 +199,7 @@
                 </el-form-item>
               </el-col>
               <el-col :span="24">
-                <el-form-item label="二维码图片地址" prop="qrUrl">
+                <el-form-item label="二维码" prop="qrUrl">
                   <el-input v-model="form.qrUrl" type="textarea" placeholder="自动生成时自动带出" />
                 </el-form-item>
               </el-col>
@@ -295,7 +295,7 @@
         </div>
         <div v-else style="color:#c0c4cc;padding:40px 0">该记录无二维码内容</div>
         <el-descriptions :column="1" border style="margin-top:14px;text-align:left">
-          <el-descriptions-item label="场景值 scene">{{ qrPreview.sceneId }}</el-descriptions-item>
+          <el-descriptions-item label="场景值">{{ qrPreview.sceneId }}</el-descriptions-item>
           <el-descriptions-item label="分销员">{{ qrPreview.userName || qrPreview.userId || '-' }}</el-descriptions-item>
           <el-descriptions-item label="类型">{{ qrPreview.bizType == '0' ? '分销(永久码)' : '临时码' }}</el-descriptions-item>
           <el-descriptions-item label="二维码内容">{{ qrPreview.qrUrl || '-' }}</el-descriptions-item>
@@ -436,10 +436,10 @@ function handleSelectionChange(selection: WxQrScene[]) {
 
 /** 停用/启用二维码 (R6) */
 function handleToggleStatus(row: any) {
-  const target = row.status == '1' ? '0' : '1'
+  const target = ((row && row.status) || '0') == '1' ? '0' : '1'
   const action = target == '0' ? '停用' : '启用'
   proxy.$modal.confirm('确认' + action + '该二维码？' + (target == '0' ? '停用后扫码将失效' : '')).then(() => {
-    return request({ url: '/wx/qr/status/' + row.id, method: 'put', data: { status: target } })
+    return request({ url: '/wx/qr/status/' + ((row && row.id) || ''), method: 'put', data: { status: target } })
   }).then((res: any) => {
     if (res && res.code === 200) {
       proxy.$modal.msgSuccess(action + "成功")
@@ -447,7 +447,7 @@ function handleToggleStatus(row: any) {
     } else {
       proxy.$modal.msgError((res && res.msg) || action + "失败")
     }
-  }).catch(() => {})
+  }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 下载二维码图片(本地生成PNG) */
@@ -583,7 +583,7 @@ async function autoGenerate() {
 /** 修改按钮操作 */
 function handleUpdate(row: WxQrScene) {
   reset()
-  const _id = row.id || ids.value[0]
+  const _id = (row && row.id) || ids.value[0]
   getQr(_id).then(response => {
     form.value = response.data
     open.value = true
@@ -614,13 +614,12 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row: WxQrScene) {
-  const _ids = row.id || ids.value
+  const _ids = (row && row.id) || ids.value
   proxy.$modal.confirm('是否确认删除二维码管理编号为"' + _ids + '"的数据项？').then(function() {
     return delQr(_ids)
   }).then(() => {
     getList()
-    proxy.$modal.msgSuccess("删除成功")
-  }).catch(() => {})
+    proxy.$modal.msgSuccess("删除成功") }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 导出按钮操作 */

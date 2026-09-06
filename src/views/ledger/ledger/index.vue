@@ -9,10 +9,10 @@
           placeholder="请选择日期">
         </el-date-picker>
       </el-form-item>
-      <el-form-item label="渠道/业务员名称" prop="channelName">
+      <el-form-item label="渠道" prop="channelName">
         <el-input
           v-model="quejlParams.channelName"
-          placeholder="请输入渠道/业务员名称"
+          placeholder="请输入获客渠道/业务员"
           clearable
           @keyup.enter="handleQuery"
         />
@@ -24,6 +24,16 @@
           clearable
           @keyup.enter="handleQuery"
         />
+      </el-form-item>
+      <el-form-item label="险别" prop="insuranceType">
+        <el-select v-model="quejlParams.insuranceType" placeholder="请选择险别" clearable filterable>
+          <el-option
+            v-for="opt in insuranceTypeOptions"
+            :key="opt"
+            :label="opt"
+            :value="opt"
+          />
+        </el-select>
       </el-form-item>
       <el-form-item label="上游结费" prop="upSettleStatus">
         <el-select v-model="quejlParams.upSettleStatus" placeholder="请选择上游结费" clearable>
@@ -57,7 +67,7 @@
           plain
           icon="Edit"
           :disabled="single"
-          @click="handleUpdate"
+          @click="handleUpdate()"
           v-hasPermi="['ledger:ledger:edit']"
         >修改</el-button>
       </el-col>
@@ -67,7 +77,7 @@
           plain
           icon="Delete"
           :disabled="multiple"
-          @click="handleDelete"
+          @click="handleDelete()"
           v-hasPermi="['ledger:ledger:remove']"
         >删除</el-button>
       </el-col>
@@ -85,162 +95,44 @@
 
     <el-table v-loading="loading" :data="ledgerList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="主键" align="center" prop="id" show-overflow-tooltip min-width="100" />
       <el-table-column label="日期" align="center" prop="ledgerDate" show-overflow-tooltip min-width="110">
-              <template #header>
-                <el-tooltip content="自动=当日" placement="top">
-                  <span>日期<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-                </el-tooltip>
-              </template>
       <template #default="scope">
           <span>{{ parseTime(scope.row.ledgerDate, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column  align="center" prop="channelType" >
-            <template #header>
-              <el-tooltip content="0自定义 1公众号粉丝 2系统业务员 3企业微信(预留)" placement="top">
-                <span>渠道来源<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="channelRef" >
-            <template #header>
-              <el-tooltip content="按type指向 wx_mp_user.id / sys_user.user_id" placement="top">
-                <span>渠道关联ID<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="channelName" >
-            <template #header>
-              <el-tooltip content="渠道名称自动带出" placement="top">
-                <span>渠道/业务员名称<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="policyNo" >
-            <template #header>
-              <el-tooltip content="手动填写, 可重复" placement="top">
-                <span>保单号<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="productId" >
-            <template #header>
-              <el-tooltip content="选产品联动带出" placement="top">
-                <span>产品<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="productName" >
-            <template #header>
-              <el-tooltip content="产品带出" placement="top">
-                <span>产品名称<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="insuranceType" >
-            <template #header>
-              <el-tooltip content="产品带出" placement="top">
-                <span>险别<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="insuranceCompany" >
-            <template #header>
-              <el-tooltip content="产品带出" placement="top">
-                <span>保险公司<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="applicant" >
-            <template #header>
-              <el-tooltip content="手动填写" placement="top">
-                <span>投保人<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="insured" >
-            <template #header>
-              <el-tooltip content="手动填写" placement="top">
-                <span>被保人<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="premium" >
-            <template #header>
-              <el-tooltip content="手动填写" placement="top">
-                <span>保费(¥)<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="taxFlag" >
-            <template #header>
-              <el-tooltip content="0否 1是, 产品带出" placement="top">
-                <span>是否含税<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="upRate" >
-            <template #header>
-              <el-tooltip content="产品带出" placement="top">
-                <span>上游返利%<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="downRate" >
-            <template #header>
-              <el-tooltip content="产品带出" placement="top">
-                <span>下游返利%<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="upChannel" >
-            <template #header>
-              <el-tooltip content="产品带出" placement="top">
-                <span>上游渠道<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="downCommission" >
-            <template #header>
-              <el-tooltip content="自动算" placement="top">
-                <span>下游佣金<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column><el-table-column  align="center" prop="upCommission" >
-            <template #header>
-              <el-tooltip content="自动算" placement="top">
-                <span>上游税后佣金<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-              </el-tooltip>
-            </template>
-          </el-table-column>
-      <el-table-column align="center" prop="netFee">
-        <template #header>
-          <el-tooltip content="自动算 = 保费-下游佣金" placement="top">
-            <span>净费<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-          </el-tooltip>
-        </template>
+          <el-table-column label="渠道" align="center" prop="channelName" show-overflow-tooltip />
+          <el-table-column label="保单号" align="center" prop="policyNo" show-overflow-tooltip />
+          <el-table-column label="产品名称" align="center" prop="productName" show-overflow-tooltip />
+          <el-table-column label="投保人" align="center" prop="applicant" show-overflow-tooltip />
+          <el-table-column label="被保人" align="center" prop="insured" show-overflow-tooltip />
+          <el-table-column label="保费" align="center" prop="premium" show-overflow-tooltip />
+          <el-table-column label="是否含税" align="center" prop="taxFlag" show-overflow-tooltip />
+          <el-table-column label="返利率" align="center" prop="upRate" show-overflow-tooltip />
+          <el-table-column label="返利率" align="center" prop="downRate" show-overflow-tooltip />
+          <el-table-column label="上游渠道" align="center" prop="upChannel" show-overflow-tooltip />
+          <el-table-column label="下游佣金" align="center" prop="downCommission" show-overflow-tooltip />
+          <el-table-column label="上游佣金" align="center" prop="upCommission" show-overflow-tooltip />
+      <el-table-column label="净费" align="center" prop="netFee" show-overflow-tooltip>
       </el-table-column>
-      <el-table-column align="center" prop="profit">
-        <template #header>
-          <el-tooltip content="自动算 = 上游税后佣金-下游佣金" placement="top">
-            <span>利润<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-          </el-tooltip>
-        </template>
+      <el-table-column label="利润" align="center" prop="profit" show-overflow-tooltip>
       </el-table-column>
       <el-table-column label="上游结费" align="center" prop="upSettleStatus" show-overflow-tooltip min-width="110">
-              <template #header>
-                <el-tooltip content="0未结算 1已结算" placement="top">
-                  <span>上游结费<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-                </el-tooltip>
-              </template>
       <template #default="scope">
           <dict-tag :options="led_settle_status" :value="scope.row.upSettleStatus"/>
         </template>
       </el-table-column>
       <el-table-column label="下游结费" align="center" prop="downSettleStatus" show-overflow-tooltip min-width="110">
-              <template #header>
-                <el-tooltip content="0未结算 1已结算" placement="top">
-                  <span>下游结费<span style="color:#e6a23c;margin-left:2px;">!</span></span>
-                </el-tooltip>
-              </template>
       <template #default="scope">
           <dict-tag :options="led_settle_status" :value="scope.row.downSettleStatus"/>
         </template>
       </el-table-column>
-      <el-table-column label="上游结算单号" align="center" prop="upSettleNo" show-overflow-tooltip min-width="100" />
-      <el-table-column label="下游结算单号" align="center" prop="downSettleNo" show-overflow-tooltip min-width="100" />
-      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip min-width="100" />
+      <el-table-column label="理赔备注" align="center" prop="claimRemark" show-overflow-tooltip />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="280">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['ledger:ledger:edit']">修改</el-button>
           <el-button link type="success" icon="Money" @click="handleSettle(scope.row, '0')" v-hasPermi="['led:settle:do']">上游结算</el-button>
           <el-button link type="warning" icon="Money" @click="handleSettle(scope.row, '1')" v-hasPermi="['led:settle:do']">下游结算</el-button>
+          <el-button link type="success" icon="Document" @click="handleBook(scope.row)" v-hasPermi="['finance:ledgerBook:book']">记账</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['ledger:ledger:remove']">删除</el-button>
         </template>
       </el-table-column>
@@ -313,10 +205,9 @@
               <el-select v-if="form.channelType === '1'" v-model="form.channelRef" placeholder="选择粉丝" clearable filterable style="width: 100%" @change="handleChannelRefChange">
                 <el-option v-for="f in fanList" :key="f.id" :label="f.nickname || f.phone || f.openid" :value="f.id" />
               </el-select>
-              <el-select v-else-if="form.channelType === '2'" v-model="form.channelRef" placeholder="选择业务员" clearable filterable style="width: 100%" @change="handleChannelRefChange">
-                <el-option v-for="u in sysUserList" :key="u.userId" :label="u.nickName || u.userName" :value="u.userId" />
+              <el-select v-else-if="form.channelType === '2'" v-model="form.channelRef" placeholder="选择渠道/业务员" clearable filterable style="width: 100%" @change="handleChannelRefChange">
+                <el-option v-for="u in channelUserList" :key="u.id" :label="u.userName" :value="u.id" />
               </el-select>
-              <el-input v-else v-model="form.channelRef" placeholder="自定义渠道ID(可空)" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -326,7 +217,7 @@
 
               <el-tooltip content="渠道名称自动带出" placement="top">
 
-                <span>渠道/业务员名称<span style="color:#e6a23c;margin-left:2px;">!</span></span>
+                <span>获客渠道/业务员<span style="color:#e6a23c;margin-left:2px;">!</span></span>
 
               </el-tooltip>
 
@@ -462,7 +353,10 @@
 
             </template>
 
-              <el-input v-model="form.taxFlag" placeholder="请输入是否含税" />
+              <el-radio-group v-model="form.taxFlag" @change="calcPreview">
+                <el-radio :label="'1'">是</el-radio>
+                <el-radio :label="'0'">否</el-radio>
+              </el-radio-group>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -478,7 +372,7 @@
 
             </template>
 
-              <el-input v-model="form.upRate" placeholder="请输入上游返利%" />
+              <el-input v-model="form.upRate" placeholder="请输入上游返利%" @input="calcPreview" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -494,7 +388,7 @@
 
             </template>
 
-              <el-input v-model="form.downRate" placeholder="请输入下游返利%" />
+              <el-input v-model="form.downRate" placeholder="请输入下游返利%" @input="calcPreview" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -504,13 +398,13 @@
 
               <el-tooltip content="产品带出" placement="top">
 
-                <span>上游渠道<span style="color:#e6a23c;margin-left:2px;">!</span></span>
+                <span>上游渠道商<span style="color:#e6a23c;margin-left:2px;">!</span></span>
 
               </el-tooltip>
 
             </template>
 
-              <el-input v-model="form.upChannel" placeholder="请输入上游渠道" />
+              <el-input v-model="form.upChannel" placeholder="请输入上游渠道商" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -621,14 +515,9 @@
               </el-radio-group>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="上游结算单号" prop="upSettleNo">
-              <el-input v-model="form.upSettleNo" placeholder="请输入上游结算单号" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="下游结算单号" prop="downSettleNo">
-              <el-input v-model="form.downSettleNo" placeholder="请输入下游结算单号" />
+          <el-col :span="24">
+            <el-form-item label="理赔备注" prop="claimRemark">
+              <el-input v-model="form.claimRemark" type="textarea" placeholder="请输入理赔备注信息" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -651,8 +540,11 @@
 <script setup lang="ts" name="Ledger">
 import type { JonlinkInsuranceLedger, LedgerQuejlParams } from "@/types/api/ledger/ledger"
 import { listLedger, getLedger, delLedger, addLedger, updateLedger } from "@/api/ledger/ledger"
+import { bookLedger, listLedgerBook } from "@/api/finance/ledgerBook"
 import { listProduct } from "@/api/ledger/product"
+import { listChannelUserOptions } from "@/api/ledger/channelUser"
 import request from "@/utils/request"
+import { parseTime } from "@/utils/jonlink"
 
 const { proxy } = getCurrentInstance()
 const { led_settle_status, wx_channel_type } = useDict('led_settle_status', 'wx_channel_type')
@@ -660,7 +552,9 @@ const { led_settle_status, wx_channel_type } = useDict('led_settle_status', 'wx_
 const ledgerList = ref<JonlinkInsuranceLedger[]>([])
 const productList = ref<any[]>([])
 const fanList = ref<any[]>([])
-const sysUserList = ref<any[]>([])
+const channelUserList = ref<any[]>([])
+// 险别下拉(P2-1):从产品表去重
+const insuranceTypeOptions = ref<string[]>([])
 const open = ref<boolean>(false)
 const loading = ref<boolean>(true)
 const showSearch = ref<boolean>(true)
@@ -689,7 +583,7 @@ const data = reactive({
       { required: true, message: "渠道来源不能为空", trigger: "change" }
     ],
     channelName: [
-      { required: true, message: "渠道/业务员名称不能为空", trigger: "blur" }
+      { required: true, message: "获客渠道/业务员不能为空", trigger: "blur" }
     ],
     policyNo: [
       { required: true, message: "保单号不能为空", trigger: "blur" }
@@ -743,7 +637,7 @@ function cancel() {
 function reset() {
   form.value = {
     id: null,
-    ledgerDate: null,
+    ledgerDate: parseTime(new Date(), '{y}-{m}-{d}'),
     channelType: null,
     channelRef: null,
     channelName: null,
@@ -805,7 +699,7 @@ function handleAdd() {
 /** 修改按钮操作 */
 function handleUpdate(row: JonlinkInsuranceLedger) {
   reset()
-  const _id = row.id || ids.value[0]
+  const _id = (row && row.id) || ids.value[0]
   getLedger(_id).then(response => {
     form.value = response.data
     open.value = true
@@ -836,13 +730,12 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row: JonlinkInsuranceLedger) {
-  const _ids = row.id || ids.value
+  const _ids = (row && row.id) || ids.value
   proxy.$modal.confirm('是否确认删除保险台账编号为"' + _ids + '"的数据项？').then(function() {
     return delLedger(_ids)
   }).then(() => {
     getList()
-    proxy.$modal.msgSuccess("删除成功")
-  }).catch(() => {})
+    proxy.$modal.msgSuccess("删除成功") }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 导出按钮操作 */
@@ -857,6 +750,12 @@ function handleExport() {
 function loadProducts() {
   listProduct({ pageNum: 1, pageSize: 200, shelfStatus: '1' }).then(response => {
     productList.value = response.rows
+    // P2-1:从产品表去重险别下拉
+    const set = new Set<string>()
+    for (const p of (response.rows || [])) {
+      if (p.typeName) set.add(p.typeName)
+    }
+    insuranceTypeOptions.value = Array.from(set)
   })
 }
 
@@ -874,7 +773,7 @@ function handleProductChange(productId: number) {
   calcPreview()
 }
 
-/** 渠道来源切换: 按类型加载粉丝/业务员下拉 */
+/** 渠道来源切换: 按类型加载粉丝/渠道业务员下拉(type=2 不再有自定义) */
 function handleChannelTypeChange(val: any) {
   form.value.channelRef = null
   form.value.channelName = null
@@ -883,8 +782,8 @@ function handleChannelTypeChange(val: any) {
       fanList.value = res.rows || []
     })
   } else if (val === '2') {
-    request({ url: "/system/user/list", method: "get", params: { pageNum: 1, pageSize: 200 } }).then((res: any) => {
-      sysUserList.value = res.rows || []
+    listChannelUserOptions().then((res: any) => {
+      channelUserList.value = res.data || res.rows || []
     })
   }
 }
@@ -895,8 +794,8 @@ function handleChannelRefChange(val: any) {
     const f = fanList.value.find((x: any) => x.id === val)
     form.value.channelName = f ? (f.nickname || f.phone || f.openid) : null
   } else if (form.value.channelType === '2') {
-    const u = sysUserList.value.find((x: any) => x.userId === val)
-    form.value.channelName = u ? (u.nickName || u.userName) : null
+    const u = channelUserList.value.find((x: any) => x.id === val)
+    form.value.channelName = u ? u.userName : null
   }
 }
 
@@ -918,12 +817,12 @@ function calcPreview() {
 /** 结算(上游/下游) */
 function handleSettle(row: JonlinkInsuranceLedger, direction: string) {
   const name = direction === '0' ? '上游' : '下游'
-  proxy.$modal.confirm('确认对保单[' + row.policyNo + ']进行' + name + '结算？').then(function() {
+  proxy.$modal.confirm('确认对保单[' + ((row && row.policyNo) || '') + ']进行' + name + '结算？').then(function() {
     const url = direction === '0' ? '/ledger/settle/up' : '/ledger/settle/down'
     return request({
       url: url,
       method: 'post',
-      data: { ledgerId: row.id }
+      data: { ledgerId: (row && row.id) || '' }
     })
   }).then((res: any) => {
     if (res.code === 200) {
@@ -932,7 +831,36 @@ function handleSettle(row: JonlinkInsuranceLedger, direction: string) {
     } else {
       proxy.$modal.msgError(res.msg)
     }
-  }).catch(() => {})
+  }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
+}
+
+/** 台账记账 */
+function handleBook(row: JonlinkInsuranceLedger) {
+  if (!row || !row.id) return
+  proxy.$modal.confirm('确认对保单[' + (row.policyNo || '') + ']进行记账？').then(function() {
+    const now = new Date()
+    const periodCode = now.getFullYear().toString() + String(now.getMonth() + 1).padStart(2, '0')
+    return bookLedger({
+      templateCode: 'ledger_book',
+      ledgerId: row.id,
+      policyNo: row.policyNo,
+      amountFieldMap: {
+        premium: row.premium,
+        up_commission: row.upCommission,
+        down_commission: row.downCommission,
+        net_fee: row.netFee,
+        profit: row.profit
+      },
+      periodCode: periodCode,
+      voucherDate: now.toISOString().slice(0, 10)
+    })
+  }).then((res: any) => {
+    if (res.code === 200) {
+      proxy.$modal.msgSuccess("记账成功，凭证号: " + (res.data?.voucherNo || ''))
+    } else {
+      proxy.$modal.msgError(res.msg)
+    }
+  }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "记账失败"); } })
 }
 
 loadProducts()

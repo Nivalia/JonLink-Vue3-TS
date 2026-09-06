@@ -11,7 +11,7 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="粉丝openid" prop="openid">
+      <el-form-item label="openid" prop="openid">
         <el-input
           v-model="quejlParams.openid"
           placeholder="请输入扫码粉丝openid"
@@ -49,7 +49,7 @@
           plain
           icon="Edit"
           :disabled="single"
-          @click="handleUpdate"
+          @click="handleUpdate()"
           v-hasPermi="['wx:qrScanLog:edit']"
         >修改</el-button>
       </el-col>
@@ -59,7 +59,7 @@
           plain
           icon="Delete"
           :disabled="multiple"
-          @click="handleDelete"
+          @click="handleDelete()"
           v-hasPermi="['wx:qrScanLog:remove']"
         >删除</el-button>
       </el-col>
@@ -78,15 +78,15 @@
     <el-table v-loading="loading" :data="qrScanLogList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="主键" align="center" prop="id" show-overflow-tooltip min-width="100" />
-      <el-table-column label="scene值" align="center" prop="sceneId" show-overflow-tooltip min-width="100" />
+      <el-table-column label="scene" align="center" prop="sceneId" show-overflow-tooltip min-width="100" />
       <el-table-column label="状态" align="center" prop="bizType" show-overflow-tooltip min-width="110">
         <template #default="scope">
           <dict-tag :options="wx_qr_biz_type" :value="scope.row.bizType"/>
         </template>
       </el-table-column>
       <el-table-column label="场景串" align="center" prop="sceneStr" show-overflow-tooltip min-width="100" />
-      <el-table-column label="粉丝openid" align="center" prop="openid" show-overflow-tooltip min-width="100" />
-      <el-table-column label="本次新关注" align="center" prop="isNewFollow" show-overflow-tooltip min-width="110">
+      <el-table-column label="openid" align="center" prop="openid" show-overflow-tooltip min-width="100" />
+      <el-table-column label="新关注" align="center" prop="isNewFollow" show-overflow-tooltip min-width="110">
         <template #default="scope">
           <dict-tag :options="wx_scan_is_new" :value="scope.row.isNewFollow"/>
         </template>
@@ -118,7 +118,7 @@
       <el-form ref="qrScanLogRef" :model="form" :rules="rules" label-width="110px">
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="scene值" prop="sceneId">
+            <el-form-item label="scene" prop="sceneId">
               <el-input v-model="form.sceneId" placeholder="请输入scene值" />
             </el-form-item>
           </el-col>
@@ -140,13 +140,15 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="粉丝openid" prop="openid">
+            <el-form-item label="openid" prop="openid">
               <el-input v-model="form.openid" placeholder="请输入扫码粉丝openid" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="本次新关注" prop="isNewFollow">
-              <el-input v-model="form.isNewFollow" placeholder="请输入是否本次扫码新关注 0否 1是" />
+            <el-form-item label="新关注" prop="isNewFollow">
+              <el-select v-model="form.isNewFollow" placeholder="请选择" style="width:100%">
+                <el-option v-for="dict in wx_scan_is_new" :key="dict.value" :label="dict.label" :value="dict.value" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -179,9 +181,10 @@
 <script setup lang="ts" name="QrScanLog">
 import type { WxQrScanLog, QrScanLogQuejlParams } from "@/types/api/wx/qrScanLog"
 import { listQrScanLog, getQrScanLog, delQrScanLog, addQrScanLog, updateQrScanLog } from "@/api/wx/qrScanLog"
+import { finDict } from '@/utils/financeDict'
 
 const { proxy } = getCurrentInstance()
-const { wx_qr_biz_type } = useDict('wx_qr_biz_type')
+const { wx_qr_biz_type, wx_scan_is_new } = useDict('wx_qr_biz_type', 'wx_scan_is_new')
 
 const qrScanLogList = ref<WxQrScanLog[]>([])
 const open = ref<boolean>(false)
@@ -283,7 +286,7 @@ function handleAdd() {
 /** 修改按钮操作 */
 function handleUpdate(row: WxQrScanLog) {
   reset()
-  const _id = row.id || ids.value[0]
+  const _id = (row && row.id) || ids.value[0]
   getQrScanLog(_id).then(response => {
     form.value = response.data
     open.value = true
@@ -314,13 +317,12 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row: WxQrScanLog) {
-  const _ids = row.id || ids.value
+  const _ids = (row && row.id) || ids.value
   proxy.$modal.confirm('是否确认删除扫码日志编号为"' + _ids + '"的数据项？').then(function() {
     return delQrScanLog(_ids)
   }).then(() => {
     getList()
-    proxy.$modal.msgSuccess("删除成功")
-  }).catch(() => {})
+    proxy.$modal.msgSuccess("删除成功") }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 导出按钮操作 */

@@ -61,7 +61,7 @@
                plain
                icon="Edit"
                :disabled="single"
-               @click="handleUpdate"
+               @click="handleUpdate()"
                v-hasPermi="['system:config:edit']"
             >修改</el-button>
          </el-col>
@@ -71,7 +71,7 @@
                plain
                icon="Delete"
                :disabled="multiple"
-               @click="handleDelete"
+               @click="handleDelete()"
                v-hasPermi="['system:config:remove']"
             >删除</el-button>
          </el-col>

@@ -33,7 +33,7 @@
           plain
           icon="Edit"
           :disabled="single"
-          @click="handleUpdate"
+          @click="handleUpdate()"
           v-hasPermi="['ledger:wxLedgerSummary:edit']"
         >修改</el-button>
       </el-col>
@@ -43,7 +43,7 @@
           plain
           icon="Delete"
           :disabled="multiple"
-          @click="handleDelete"
+          @click="handleDelete()"
           v-hasPermi="['ledger:wxLedgerSummary:remove']"
         >删除</el-button>
       </el-col>
@@ -73,8 +73,8 @@
         </template>
       </el-table-column>
       <el-table-column label="当日笔数" align="center" prop="totalCount" show-overflow-tooltip min-width="100" />
-      <el-table-column label="当日金额合计" align="center" prop="totalAmount" show-overflow-tooltip min-width="100" />
-      <el-table-column label="当日积分合计" align="center" prop="totalPoints" show-overflow-tooltip min-width="100" />
+      <el-table-column label="当日金额" align="center" prop="totalAmount" show-overflow-tooltip min-width="100" />
+      <el-table-column label="当日积分" align="center" prop="totalPoints" show-overflow-tooltip min-width="100" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="170">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['ledger:wxLedgerSummary:edit']">修改</el-button>
@@ -103,6 +103,7 @@
                 value-format="YYYY-MM-DD"
                 placeholder="请选择统计日期">
               </el-date-picker>
+              <el-alert v-if="dateDuplicate" title="该日期+类型已有汇总记录" type="warning" show-icon style="margin-top:4px" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -123,20 +124,27 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="当日金额合计" prop="totalAmount">
+            <el-form-item label="当日金额" prop="totalAmount">
               <el-input v-model="form.totalAmount" placeholder="请输入当日金额合计" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="当日积分合计" prop="totalPoints">
+            <el-form-item label="当日积分" prop="totalPoints">
               <el-input v-model="form.totalPoints" placeholder="请输入当日积分合计" />
             </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-alert type="info" show-icon :closable="false">
+              <template #title>
+                自动计算: 平均金额 <b>{{ avgAmount }}</b> 元/笔 · 平均积分 <b>{{ avgPoints }}</b> 分/笔
+              </template>
+            </el-alert>
           </el-col>
         </el-row>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
+          <el-button type="primary" :disabled="dateDuplicate" @click="submitForm">确 定</el-button>
           <el-button @click="cancel">取 消</el-button>
         </div>
       </template>
@@ -145,6 +153,7 @@
 </template>
 
 <script setup lang="ts" name="WxLedgerSummary">
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import type { WxLedgerSummary, WxLedgerSummaryQuejlParams } from "@/types/api/ledger/wxLedgerSummary"
 import { listWxLedgerSummary, getWxLedgerSummary, delWxLedgerSummary, addWxLedgerSummary, updateWxLedgerSummary } from "@/api/ledger/wxLedgerSummary"
 
@@ -188,6 +197,34 @@ const data = reactive({
 })
 
 const { quejlParams, form, rules } = toRefs(data)
+
+// 平均金额/积分
+const avgAmount = computed(() => {
+  const count = Number(form.value.totalCount) || 0
+  const amount = Number(form.value.totalAmount) || 0
+  return count > 0 ? (amount / count).toFixed(2) : '0.00'
+})
+const avgPoints = computed(() => {
+  const count = Number(form.value.totalCount) || 0
+  const points = Number(form.value.totalPoints) || 0
+  return count > 0 ? (points / count).toFixed(2) : '0.00'
+})
+
+// 日期+类型重复校验
+const dateDuplicate = ref(false)
+async function checkDateDuplicate() {
+  if (!form.value.statDate || !form.value.ledgerType) { dateDuplicate.value = false; return }
+  try {
+    const r: any = await listWxLedgerSummary({ pageNum: 1, pageSize: 100, ledgerType: form.value.ledgerType })
+    const exists = (r.rows || []).some((item: any) =>
+      item.statDate === form.value.statDate && item.ledgerType === form.value.ledgerType && item.id !== form.value.id
+    )
+    dateDuplicate.value = exists
+  } catch { dateDuplicate.value = false }
+}
+
+// 监听日期和类型变化
+watch(() => [form.value.statDate, form.value.ledgerType], () => { checkDateDuplicate() })
 
 /** 查询台账日汇总列表 */
 function getList() {
@@ -247,7 +284,7 @@ function handleAdd() {
 /** 修改按钮操作 */
 function handleUpdate(row: WxLedgerSummary) {
   reset()
-  const _id = row.id || ids.value[0]
+  const _id = (row && row.id) || ids.value[0]
   getWxLedgerSummary(_id).then(response => {
     form.value = response.data
     open.value = true
@@ -278,13 +315,12 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row: WxLedgerSummary) {
-  const _ids = row.id || ids.value
+  const _ids = (row && row.id) || ids.value
   proxy.$modal.confirm('是否确认删除台账日汇总编号为"' + _ids + '"的数据项？').then(function() {
     return delWxLedgerSummary(_ids)
   }).then(() => {
     getList()
-    proxy.$modal.msgSuccess("删除成功")
-  }).catch(() => {})
+    proxy.$modal.msgSuccess("删除成功") }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 导出按钮操作 */

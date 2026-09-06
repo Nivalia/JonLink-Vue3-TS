@@ -42,7 +42,7 @@
         </div>
 
         <div class="notice-body">
-          <div v-if="hasContent" class="notice-content" v-html="detail.noticeContent" />
+          <div v-if="hasContent" class="notice-content" v-html="safeContent" />
           <div v-else class="notice-empty notice-empty--inner">
             <el-icon><Document /></el-icon> 暂无内容
           </div>
@@ -55,6 +55,8 @@
 <script setup lang="ts">
 import { getNotice } from '@/api/system/notice'
 import type { SysNotice } from '@/types/api/system/notice'
+// [AUDIT-2026-09-04] 公告内容用 DOMPurify 防 XSS
+import DOMPurify from 'dompurify'
 
 const visible = ref<boolean>(false)
 const loading = ref<boolean>(false)
@@ -68,6 +70,16 @@ const isStatusNormal = computed<boolean>(() => {
 const hasContent = computed<boolean>(() => {
   const content = detail.value && detail.value.noticeContent
   return content != null && String(content).trim() !== ''
+})
+
+// [AUDIT-2026-09-04] v-html 内容经 DOMPurify 过滤,仅保留安全的 HTML
+const safeContent = computed<string>(() => {
+  const content = detail.value && detail.value.noticeContent
+  if (content == null) return ''
+  return DOMPurify.sanitize(String(content), {
+    USE_PROFILES: { html: true },
+    ALLOWED_ATTR: ['href', 'title', 'target', 'class', 'src', 'alt', 'style']
+  })
 })
 
 function open(payload: any) {

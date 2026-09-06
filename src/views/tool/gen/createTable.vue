@@ -32,10 +32,12 @@ function handleImportTable(): void {
     return
   }
   createTable({ sql: content.value, tplWebType: 'element-plus-typescript' }).then(res => {
-    proxy.$modal.msgSuccess(res.msg)
     if (res.code === 200) {
+      proxy.$modal.msgSuccess(res.msg || '创建成功')
       visible.value = false
       emit("ok")
+    } else {
+      proxy.$modal.msgError(res.msg || '创建失败')
     }
   })
 }

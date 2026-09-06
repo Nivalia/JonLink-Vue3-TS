@@ -7,12 +7,11 @@
          <el-form-item label="标题" prop="title">
             <el-input v-model="quejlParams.title" placeholder="政策标题关键词" clearable style="width: 240px" @keyup.enter="handleQuery" />
          </el-form-item>
-         <el-form-item label="状态" prop="status">
-            <el-select v-model="quejlParams.status" placeholder="发布状态" clearable style="width: 200px">
-               <el-option label="草稿" value="0" />
-               <el-option label="已发布" value="1" />
-            </el-select>
-         </el-form-item>
+          <el-form-item label="状态" prop="status">
+             <el-select v-model="quejlParams.status" placeholder="发布状态" clearable style="width: 200px">
+                <el-option v-for="dict in policy_publish_status" :key="dict.value" :label="dict.label" :value="dict.value" />
+             </el-select>
+          </el-form-item>
          <el-form-item>
             <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
             <el-button icon="Refresh" @click="resetQuery">重置</el-button>
@@ -42,10 +41,32 @@
          <el-table-column type="selection" width="55" align="center" />
          <el-table-column label="分类" prop="categoryName" show-overflow-tooltip min-width="120" />
          <el-table-column label="政策标题" prop="title" show-overflow-tooltip min-width="220" />
-         <el-table-column label="图片数" prop="pics" align="center" width="80">
-            <template #default="scope">{{ parsePics(scope.row.pics).length }} 张</template>
+         <el-table-column label="图片数" prop="pics" align="center" width="100">
+            <template #default="scope">
+               <el-popover placement="left" :width="380" trigger="hover" v-if="parsePics(scope.row.pics).length > 0">
+                  <template #reference>
+                     <el-tag type="success" size="small" round cursor>{{ parsePics(scope.row.pics).length }} 张</el-tag>
+                  </template>
+                  <div class="pics-grid">
+                     <el-image
+                        v-for="(u, i) in parsePics(scope.row.pics)"
+                        :key="i"
+                        :src="u"
+                        :preview-src-list="parsePics(scope.row.pics)"
+                        :initial-index="i"
+                        fit="cover"
+                        style="width: 110px; height: 80px; border-radius: 4px"
+                     />
+                  </div>
+               </el-popover>
+               <span v-else class="text-placeholder">无</span>
+            </template>
          </el-table-column>
-         <el-table-column label="版本号" prop="versionNo" align="center" width="80" />
+         <el-table-column label="版本" align="center" width="80">
+            <template #default="scope">
+               <el-tag type="warning" size="small">v{{ String(scope.row.versionNo ?? 1).padStart(2, '0') }}</el-tag>
+            </template>
+         </el-table-column>
          <el-table-column label="浏览数" prop="viewCount" align="center" width="80" />
          <el-table-column label="状态" prop="status" align="center" width="100">
             <template #default="scope">
@@ -71,7 +92,8 @@
                <el-cascader v-model="form.parentAndChild" :options="categoryTree" :props="{ value: 'id', label: 'categoryName', checkStrictly: true, emitPath: false }" placeholder="选择 2 级分类" style="width: 100%" @change="onFormCascaderChange" />
             </el-form-item>
             <el-form-item label="政策标题" prop="title">
-               <el-input v-model="form.title" placeholder="请输入政策标题" />
+               <el-input v-model="form.title" placeholder="留空将自动按 yyyyMMddHHmmss 生成" clearable />
+               <div class="form-tip">可不填,上传图片后系统自动生成时间戳标题</div>
             </el-form-item>
             <el-form-item label="图片" prop="pics">
                <ImageUpload v-model="form.pics" :limit="20" />
@@ -98,7 +120,7 @@
          <div v-loading="versionLoading">
             <el-empty v-if="!versions.length" description="暂无历史版本" />
             <el-timeline v-else>
-               <el-timeline-item v-for="v in versions" :key="v.id" :timestamp="'版本 v' + v.versionNo" placement="top">
+               <el-timeline-item v-for="v in versions" :key="v.id" :timestamp="'版本 v' + String(v.versionNo ?? 1).padStart(2, '0')" placement="top">
                   <el-card shadow="hover">
                      <div class="version-meta">
                         <span class="title">{{ v.title }}</span>
@@ -128,8 +150,10 @@ import {
 } from '@/api/policy/article'
 import type { PolicyArticle, PolicyArticleQuejlParams, PolicyArticleVersion, PolicyCategory } from '@/types'
 import ImageUpload from '@/components/ImageUpload/index.vue'
+import { finDict } from '@/utils/financeDict'
 
 const { proxy } = getCurrentInstance() as any
+const { policy_publish_status } = proxy.useDict('policy_publish_status')
 
 const articleList = ref<PolicyArticle[]>([])
 const total = ref(0)
@@ -156,7 +180,7 @@ const data = reactive<{
   quejlParams: { pageNum: 1, pageSize: 10 },
   rules: {
     categoryId: [{ required: true, message: '请选择 2 级分类', trigger: 'change' }],
-    title: [{ required: true, message: '请输入政策标题', trigger: 'blur' }],
+    title: [{ required: false, message: '标题可不填,不填则自动生成 yyyyMMddHHmmss', trigger: 'blur' }],
     status: [{ required: true, message: '请选择发布状态', trigger: 'change' }]
   }
 })
@@ -257,11 +281,13 @@ function handleDelete(row?: PolicyArticle) {
     .catch(() => {})
 }
 
-function handleToggleStatus(row: PolicyArticle) {
-  const next = row.status === '1' ? '0' : '1'
+function handleToggleStatus(row?: PolicyArticle) {
+  const _id = (row && row.id) || ids.value[0]
+  if (!_id) return
+  const next = (row?.status === '1') ? '0' : '1'
   const msg = next === '1' ? '发布' : '下架'
   ElMessageBox.confirm(`确认${msg}该政策?`, '提示', { type: 'warning' })
-    .then(() => changePolicyArticleStatus(row.id!, next))
+    .then(() => changePolicyArticleStatus(_id as number, next))
     .then(() => { getList(); ElMessage.success(`${msg}成功`) })
     .catch(() => {})
 }
@@ -306,4 +332,6 @@ getList()
 .version-imgs { display: flex; flex-wrap: wrap; gap: 4px; }
 .version-actions { text-align: right; margin-top: 8px; }
 .form-tip { font-size: 12px; color: #909399; margin-top: 4px; }
+.pics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-height: 280px; overflow-y: auto; }
+.text-placeholder { color: #c0c4cc; font-size: 12px; }
 </style>

@@ -21,13 +21,14 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import request from '@/utils/request'
+import { finDict } from '@/utils/financeDict'
 
 const loading = ref(true)
 const list = ref<any[]>([])
 
-function statusName(s: string) {
-  return ({ '0': '待支付', '1': '已支付', '2': '已核销', '3': '已退款' } as any)[s] || s
-}
+const { wx_pay_status } = useDict('wx_pay_status')
+
+function statusName(s: string) { return finDict(s, 'wx_pay_status') }
 
 onMounted(() => {
   const ticket = new URLSearchParams(window.location.search).get('ticket') || ''

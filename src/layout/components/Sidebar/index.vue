@@ -12,6 +12,7 @@
         :collapse-transition="false"
         mode="vertical"
         :class="sideTheme"
+        @select="handleSelect"
       >
         <sidebar-item
           v-for="(route, index) in sidebarRouters"
@@ -66,6 +67,18 @@ const activeMenu = computed(() => {
   }
   return path
 })
+
+// el-menu @select 钩子: index 来自 el-menu-item :index, 我们用 resolvePath 后的 path
+// element-plus 的 el-menu-item 会拦截 click 阻止 router-link 跳转, 这里用 @select 显式 push
+const router = useRouter()
+function handleSelect(index: string) {
+  if (!index || index === route.path) return
+  if (/^https?:|^mailto:|^tel:/.test(index)) {
+    window.open(index, '_blank')
+    return
+  }
+  router.push(index)
+}
 </script>
 
 <style lang="scss" scoped>

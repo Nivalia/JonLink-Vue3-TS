@@ -93,9 +93,9 @@ function loadUser() {
 }
 
 function loadStats() {
-  // mock: 走 fan 中心 stats（沿用 dashboardTopDistrict 风格但限定本人）
-  // 暂用 mock 数据, 等真实接口接入
-  stats.value = { points: 1280, orders: 6, coupons: 3, distribute: 2 }
+  // TODO: 待接入 WxFanStatsService 真实接口
+  // 显式置 0 而非 mock 假数据,避免误导测试/演示
+  stats.value = { points: 0, orders: 0, coupons: 0, distribute: 0 }
 }
 
 function copyOpenid() {

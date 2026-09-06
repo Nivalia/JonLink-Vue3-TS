@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>聚一保险 - 授权登录</title>
+<style>
+:root {
+  --primary: #1a73e8;
+  --success: #07c160;
+  --danger: #e74c3c;
+  --text: #202124;
+  --text-secondary: #5f6368;
+  --text-hint: #9aa0a6;
+  --bg: #f8f9fa;
+  --card: #ffffff;
+  --border: #e8eaed;
+  --shadow-lg: 0 4px 16px rgba(60,64,67,0.2);
+  --radius: 16px;
+  --radius-sm: 12px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg); min-height: 100vh; color: var(--text);
+}
+.header-bg {
+  position: fixed; top: 0; left: 0; right: 0; height: 260px;
+  background: linear-gradient(135deg, #1a73e8, #4285f4, #669df6);
+  border-radius: 0 0 40px 40px; z-index: 0;
+}
+.container {
+  position: relative; z-index: 1; max-width: 420px; margin: 0 auto; padding: 24px 16px;
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+}
+.logo-section { text-align: center; margin-top: 56px; margin-bottom: 24px; }
+.logo-icon {
+  width: 72px; height: 72px; border-radius: 20px;
+  background: rgba(255,255,255,0.2); display: flex; align-items: center;
+  justify-content: center; margin: 0 auto 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.logo-icon svg { width: 40px; height: 40px; fill: #fff; }
+.logo-title { font-size: 24px; font-weight: 700; color: #fff; }
+.logo-subtitle { font-size: 14px; color: rgba(255,255,255,0.8); margin-top: 6px; }
+.card {
+  background: var(--card); border-radius: var(--radius); padding: 32px 24px; width: 100%;
+  box-shadow: var(--shadow-lg); animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Loading */
+.loading-state { text-align: center; padding: 20px 0; }
+.spinner {
+  width: 44px; height: 44px; border: 3px solid var(--border);
+  border-top-color: var(--primary); border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin: 0 auto 20px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 15px; color: var(--text-secondary); }
+
+/* 用户卡片 */
+.user-card { text-align: center; }
+.avatar-wrap {
+  width: 88px; height: 88px; border-radius: 50%; margin: 0 auto 16px;
+  background: #e8f0fe; padding: 3px;
+  box-shadow: 0 4px 16px rgba(26,115,232,0.2);
+  animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+.avatar-wrap img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid #fff; }
+.avatar-placeholder {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: linear-gradient(135deg, #4285f4, #1a73e8);
+  display: flex; align-items: center; justify-content: center;
+}
+.avatar-placeholder svg { width: 44px; height: 44px; fill: rgba(255,255,255,0.9); }
+.nickname { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.openid-hint { font-size: 12px; color: var(--text-hint); font-family: monospace; margin-bottom: 20px; }
+
+/* 信息行 */
+.info-rows { text-align: left; margin-bottom: 20px; }
+.info-row {
+  display: flex; align-items: center; padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.info-row:last-child { border-bottom: none; }
+.info-icon {
+  width: 36px; height: 36px; border-radius: 10px; display: flex;
+  align-items: center; justify-content: center; margin-right: 14px; flex-shrink: 0;
+}
+.info-icon svg { width: 20px; height: 20px; }
+.info-icon.blue { background: #e8f0fe; } .info-icon.blue svg { fill: #1a73e8; }
+.info-icon.green { background: #e6f4ea; } .info-icon.green svg { fill: #137333; }
+.info-icon.orange { background: #fef7e0; } .info-icon.orange svg { fill: #e37400; }
+.info-content { flex: 1; }
+.info-label { font-size: 12px; color: var(--text-hint); }
+.info-value { font-size: 14px; font-weight: 500; }
+
+/* 按钮 */
+.btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; padding: 14px; border: none; border-radius: var(--radius-sm);
+  font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.btn:active { transform: scale(0.98); }
+.btn-primary {
+  background: linear-gradient(135deg, #1a73e8, #4285f4); color: #fff;
+  box-shadow: 0 4px 12px rgba(26,115,232,0.3);
+}
+.btn-success {
+  background: linear-gradient(135deg, #07c160, #2dd272); color: #fff;
+  box-shadow: 0 4px 12px rgba(7,193,96,0.3);
+}
+.btn-outline { background: #fff; color: var(--primary); border: 1.5px solid var(--border); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-icon { width: 20px; height: 20px; margin-right: 8px; fill: currentColor; }
+
+/* 弹窗 */
+.modal-mask {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.2s;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal-box {
+  background: #fff; border-radius: 20px; padding: 28px 24px; width: calc(100% - 48px);
+  max-width: 360px; animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+.modal-title { font-size: 18px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+.modal-desc { font-size: 13px; color: var(--text-secondary); text-align: center; margin-bottom: 20px; line-height: 1.5; }
+.modal-input {
+  width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 17px; color: var(--text); outline: none; -webkit-appearance: none;
+  letter-spacing: 2px; text-align: center;
+}
+.modal-input:focus { border-color: var(--primary); }
+.modal-input::placeholder { color: #ccc; letter-spacing: 0; font-size: 14px; }
+.modal-btns { display: flex; gap: 12px; margin-top: 20px; }
+.modal-btns .btn { flex: 1; padding: 12px; font-size: 15px; }
+.modal-msg { font-size: 13px; margin-top: 10px; text-align: center; min-height: 20px; }
+.modal-msg.error { color: var(--danger); }
+.modal-msg.success { color: var(--success); }
+
+/* 底部 */
+.footer { margin-top: auto; padding-top: 28px; text-align: center; }
+.footer-brand { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+.footer-text { font-size: 12px; color: var(--text-hint); margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="header-bg"></div>
+<div class="container">
+  <div class="logo-section">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <div class="logo-title">聚一保险</div>
+    <div class="logo-subtitle">专业 · 值得信赖的保险服务</div>
+  </div>
+
+  <!-- Loading -->
+  <div class="card" id="view-loading">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loading-text">正在跳转授权...</div>
+    </div>
+  </div>
+
+  <!-- 用户信息 -->
+  <div class="card" id="view-user" style="display:none">
+    <div class="user-card">
+      <div class="avatar-wrap">
+        <img id="avatar" src="" style="display:none">
+        <div class="avatar-placeholder" id="avatar-ph">
+          <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        </div>
+      </div>
+      <div class="nickname" id="nickname">微信用户</div>
+      <div class="openid-hint" id="openid-hint"></div>
+
+      <div class="info-rows">
+        <div class="info-row">
+          <div class="info-icon blue">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          </div>
+          <div class="info-content">
+            <div class="info-label">授权状态</div>
+            <div class="info-value" style="color:#07c160">已授权</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-icon orange">
+            <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+          </div>
+          <div class="info-content">
+            <div class="info-label">手机号</div>
+            <div class="info-value" id="phone-display" style="color:#9aa0a6">未绑定</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-icon green">
+            <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+          </div>
+          <div class="info-content">
+            <div class="info-label">授权时间</div>
+            <div class="info-value" id="auth-time"></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btn-phone" onclick="showPhoneModal()">
+        <svg class="btn-icon" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+        绑定手机号
+      </button>
+    </div>
+  </div>
+
+  <!-- 错误 -->
+  <div class="card" id="view-error" style="display:none">
+    <div style="text-align:center;padding:20px 0">
+      <div style="font-size:48px;margin-bottom:16px">😔</div>
+      <div style="font-size:18px;font-weight:600;margin-bottom:8px">授权失败</div>
+      <div style="font-size:14px;color:#5f6368;margin-bottom:24px" id="error-msg">未知错误</div>
+      <button class="btn btn-primary" onclick="reAuth()">重新尝试</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-brand">聚一保险 · JUYI INSURANCE</div>
+    <div class="footer-text">© 2026 河北聚一商贸有限公司</div>
+  </div>
+</div>
+
+<!-- 手机号弹窗 -->
+<div class="modal-mask" id="phone-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-title">绑定手机号</div>
+    <div class="modal-desc">请输入您的手机号，用于后续服务联系</div>
+    <input class="modal-input" id="phone-input" type="tel" inputmode="numeric"
+           placeholder="请输入11位手机号" maxlength="11" autocomplete="tel">
+    <div class="modal-msg" id="phone-msg"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closePhoneModal()">跳过</button>
+      <button class="btn btn-success" id="btn-confirm" onclick="confirmPhone()">确认绑定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var gOpenid = '';
+
+(function() {
+  var p = new URLSearchParams(window.location.search);
+  var openid = p.get('openid');
+  var nickname = p.get('nickname');
+  var avatar = p.get('avatar');
+  var phone = p.get('phone');
+  var errMsg = p.get('msg');
+
+  if (errMsg) { show('view-error'); document.getElementById('error-msg').textContent = decodeURIComponent(errMsg); return; }
+
+  if (openid) {
+    gOpenid = openid;
+    show('view-user');
+    document.getElementById('nickname').textContent = nickname || '微信用户';
+    document.getElementById('openid-hint').textContent = 'ID: ' + openid;
+
+    if (avatar) {
+      var img = document.getElementById('avatar');
+      img.src = avatar; img.style.display = 'block';
+      document.getElementById('avatar-ph').style.display = 'none';
+      img.onerror = function() { this.style.display='none'; document.getElementById('avatar-ph').style.display='flex'; };
+    }
+
+    var now = new Date();
+    document.getElementById('auth-time').textContent =
+      now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate())+' '+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+
+    if (phone) {
+      document.getElementById('phone-display').textContent = phone;
+      document.getElementById('phone-display').style.color = '#202124';
+      document.getElementById('btn-phone').textContent = '已绑定';
+      document.getElementById('btn-phone').disabled = true;
+    } else {
+      // 自动弹窗
+      setTimeout(function() { showPhoneModal(); }, 500);
+    }
+    return;
+  }
+
+  if (p.get('code')) { document.getElementById('loading-text').textContent = '正在完成授权...'; return; }
+  doAuth();
+})();
+
+function showPhoneModal() {
+  document.getElementById('phone-modal').style.display = 'flex';
+  document.getElementById('phone-input').value = '';
+  document.getElementById('phone-msg').textContent = '';
+  setTimeout(function() { document.getElementById('phone-input').focus(); }, 300);
+}
+function closePhoneModal() {
+  document.getElementById('phone-modal').style.display = 'none';
+}
+function confirmPhone() {
+  var phone = document.getElementById('phone-input').value.trim();
+  var msgEl = document.getElementById('phone-msg');
+  if (!/^1[3-9]\d{9}$/.test(phone)) { msgEl.className='modal-msg error'; msgEl.textContent='请输入正确的手机号'; return; }
+  if (!gOpenid) { msgEl.className='modal-msg error'; msgEl.textContent='授权信息丢失'; return; }
+
+  var btn = document.getElementById('btn-confirm');
+  btn.disabled = true; btn.textContent = '绑定中...';
+
+  fetch('/wx/oauth/bindPhone?openid='+gOpenid+'&phone='+phone+'&code=skip', {method:'POST'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.code===200){
+        msgEl.className='modal-msg success'; msgEl.textContent='绑定成功';
+        document.getElementById('phone-display').textContent = phone;
+        document.getElementById('phone-display').style.color = '#202124';
+        setTimeout(function(){
+          closePhoneModal();
+          document.getElementById('btn-phone').textContent = '已绑定';
+          document.getElementById('btn-phone').disabled = true;
+        }, 800);
+      } else {
+        msgEl.className='modal-msg error'; msgEl.textContent=d.msg||'绑定失败';
+        btn.disabled=false; btn.textContent='确认绑定';
+      }
+    }).catch(function(){
+      msgEl.className='modal-msg error'; msgEl.textContent='网络错误';
+      btn.disabled=false; btn.textContent='确认绑定';
+    });
+}
+
+function show(id) {
+  ['view-loading','view-user','view-error'].forEach(function(s){
+    document.getElementById(s).style.display = s===id?'block':'none';
+  });
+}
+function pad(n){return n<10?'0'+n:n;}
+function doAuth(){
+  var url = window.location.href.split('?')[0];
+  window.location.href = window.location.protocol+'//'+window.location.host+'/wx/oauth/jump?redirectUri='+encodeURIComponent(url)+'&scope=snsapi_userinfo';
+}
+function reAuth(){window.history.replaceState(null,'',window.location.pathname);doAuth();}
+// 手机号输入自动格式化
+document.getElementById('phone-input').addEventListener('input',function(){
+  this.value=this.value.replace(/\D/g,'').substring(0,11);
+});
+</script>
+</body>
+</html>

@@ -11,7 +11,7 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="客户手机号" prop="phone">
+      <el-form-item label="手机号" prop="phone">
         <el-input
           v-model="quejlParams.phone"
           placeholder="请输入客户手机号"
@@ -41,7 +41,7 @@
           plain
           icon="Edit"
           :disabled="single"
-          @click="handleUpdate"
+          @click="handleUpdate()"
           v-hasPermi="['ledger:wxLedgerItem:edit']"
         >修改</el-button>
       </el-col>
@@ -51,7 +51,7 @@
           plain
           icon="Delete"
           :disabled="multiple"
-          @click="handleDelete"
+          @click="handleDelete()"
           v-hasPermi="['ledger:wxLedgerItem:remove']"
         >删除</el-button>
       </el-col>
@@ -70,21 +70,21 @@
     <el-table v-loading="loading" :data="wxLedgerItemList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="主键" align="center" prop="id" show-overflow-tooltip min-width="100" />
-      <el-table-column label="台账流水号" align="center" prop="ledgerNo" show-overflow-tooltip min-width="100" />
+      <el-table-column label="流水号" align="center" prop="ledgerNo" show-overflow-tooltip min-width="100" />
       <el-table-column label="类型" align="center" prop="ledgerType" show-overflow-tooltip min-width="110">
         <template #default="scope">
           <dict-tag :options="wx_ledger_type" :value="scope.row.ledgerType"/>
         </template>
       </el-table-column>
-      <el-table-column label="关联业务单号" align="center" prop="bizNo" show-overflow-tooltip min-width="100" />
-      <el-table-column label="客户手机号" align="center" prop="phone" show-overflow-tooltip min-width="100" />
-      <el-table-column label="客户openid" align="center" prop="openid" show-overflow-tooltip min-width="100" />
+      <el-table-column label="关联单号" align="center" prop="bizNo" show-overflow-tooltip min-width="100" />
+      <el-table-column label="手机号" align="center" prop="phone" show-overflow-tooltip min-width="100" />
+      <el-table-column label="openid" align="center" prop="openid" show-overflow-tooltip min-width="100" />
       <el-table-column label="流水金额" align="center" prop="amount" show-overflow-tooltip min-width="100" />
       <el-table-column label="流水分值" align="center" prop="points" show-overflow-tooltip min-width="100" />
       <el-table-column label="方向" align="center" prop="direction" show-overflow-tooltip min-width="100" />
       <el-table-column label="经办人" align="center" prop="bizUser" show-overflow-tooltip min-width="100" />
       <el-table-column label="状态" align="center" prop="status" show-overflow-tooltip min-width="100" />
-      <el-table-column label="业务发生时间" align="center" prop="occurredTime" show-overflow-tooltip min-width="110">
+      <el-table-column label="业务时间" align="center" prop="occurredTime" show-overflow-tooltip min-width="110">
         <template #default="scope">
           <span>{{ parseTime(scope.row.occurredTime, '{y}-{m}-{d}') }}</span>
         </template>
@@ -112,7 +112,7 @@
       <el-form ref="wxLedgerItemRef" :model="form" :rules="rules" label-width="110px">
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="台账流水号" prop="ledgerNo">
+            <el-form-item label="流水号" prop="ledgerNo">
               <el-input v-model="form.ledgerNo" placeholder="请输入台账流水号(唯一)" />
             </el-form-item>
           </el-col>
@@ -129,17 +129,18 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="关联业务单号" prop="bizNo">
+            <el-form-item label="关联单号" prop="bizNo">
               <el-input v-model="form.bizNo" placeholder="请输入关联业务单号(订单号/佣金单/批次号/scene)" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="客户手机号" prop="phone">
+            <el-form-item label="手机号" prop="phone">
               <el-input v-model="form.phone" placeholder="请输入客户手机号" />
+              <el-alert v-if="phoneDuplicate" title="该手机号已有流水记录" type="warning" show-icon style="margin-top:4px" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="客户openid" prop="openid">
+            <el-form-item label="openid" prop="openid">
               <el-input v-model="form.openid" placeholder="请输入客户openid" />
             </el-form-item>
           </el-col>
@@ -155,7 +156,10 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="方向" prop="direction">
-              <el-input v-model="form.direction" placeholder="请输入方向 0流出 1流入 2中性(核销/推送)" />
+              <el-select v-model="form.direction" placeholder="请选择方向" style="width:100%">
+                <el-option v-for="dict in wx_ledger_direction" :key="dict.value" :label="dict.label" :value="dict.value" />
+              </el-select>
+              <div v-if="directionHint" style="font-size:12px;color:#e6a23c;margin-top:4px">{{ directionHint }}</div>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -164,7 +168,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="业务发生时间" prop="occurredTime">
+            <el-form-item label="业务时间" prop="occurredTime">
               <el-date-picker clearable
                 v-model="form.occurredTime"
                 type="date"
@@ -182,7 +186,7 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
+          <el-button type="primary" :disabled="phoneDuplicate" @click="submitForm">确 定</el-button>
           <el-button @click="cancel">取 消</el-button>
         </div>
       </template>
@@ -191,12 +195,14 @@
 </template>
 
 <script setup lang="ts" name="WxLedgerItem">
+import { ref, reactive, onMounted, watch } from 'vue'
 import type { WxLedgerItem, WxLedgerItemQuejlParams } from "@/types/api/ledger/wxLedgerItem"
 import { listWxLedgerItem, getWxLedgerItem, delWxLedgerItem, addWxLedgerItem, updateWxLedgerItem } from "@/api/ledger/wxLedgerItem"
 import request from "@/utils/request"
+import { finDict } from '@/utils/financeDict'
 
 const { proxy } = getCurrentInstance()
-const { wx_ledger_type } = useDict('wx_ledger_type')
+const { wx_ledger_type, wx_ledger_direction } = useDict('wx_ledger_type', 'wx_ledger_direction')
 
 const wxLedgerItemList = ref<WxLedgerItem[]>([])
 const open = ref<boolean>(false)
@@ -245,6 +251,49 @@ const data = reactive({
 })
 
 const { quejlParams, form, rules } = toRefs(data)
+
+// 类型→方向自动推断
+const directionHint = computed(() => {
+  const typeMap: Record<string, string> = {
+    '1': '核销→方向建议中性(2)',
+    '2': '分销积分→方向建议流入(1)',
+    '3': '模板推送→方向建议中性(2)',
+    '4': '扫码→方向建议流入(1)',
+    '5': '粉丝绑定→方向建议中性(2)',
+    '6': '手动调整→需手动选择方向'
+  }
+  return typeMap[form.value.ledgerType] || ''
+})
+
+// 手机号重复校验
+const phoneDuplicate = ref(false)
+async function checkPhoneDuplicate() {
+  if (!form.value.phone) { phoneDuplicate.value = false; return }
+  try {
+    const r: any = await request({
+      url: '/ledger/wxLedgerItem/list',
+      method: 'get',
+      params: { phone: form.value.phone, pageNum: 1, pageSize: 100 }
+    })
+    const exists = (r.rows || []).some((item: any) =>
+      item.phone === form.value.phone && item.id !== form.value.id
+    )
+    phoneDuplicate.value = exists
+  } catch { phoneDuplicate.value = false }
+}
+
+// 类型变化→自动带出方向、金额符号
+watch(() => form.value.ledgerType, (val) => {
+  if (val === '1' || val === '3' || val === '5') {
+    form.value.direction = '2' // 中性
+  } else if (val === '2' || val === '4') {
+    form.value.direction = '1' // 流入
+  }
+  form.value.points = form.value.amount // 积分默认=金额
+})
+
+// 手机号变化→校验重复
+watch(() => form.value.phone, () => { checkPhoneDuplicate() })
 
 /** 查询电子台账流水列表 */
 function getList() {
@@ -315,7 +364,7 @@ function handleAdd() {
 /** 修改按钮操作 */
 function handleUpdate(row: WxLedgerItem) {
   reset()
-  const _id = row.id || ids.value[0]
+  const _id = (row && row.id) || ids.value[0]
   getWxLedgerItem(_id).then(response => {
     form.value = response.data
     open.value = true
@@ -346,20 +395,19 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row: WxLedgerItem) {
-  const _ids = row.id || ids.value
+  const _ids = (row && row.id) || ids.value
   proxy.$modal.confirm('是否确认删除电子台账流水编号为"' + _ids + '"的数据项？').then(function() {
     return delWxLedgerItem(_ids)
   }).then(() => {
     getList()
-    proxy.$modal.msgSuccess("删除成功")
-  }).catch(() => {})
+    proxy.$modal.msgSuccess("删除成功") }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 冲正: 生成反向流水(类型6) */
 function handleReverse(row: WxLedgerItem) {
   proxy.$modal.confirm('确认冲正该流水？将生成一条金额相反的冲正记录(原流水保留)。').then(function() {
     return request({
-      url: '/ledger/wxLedgerItem/reverse/' + row.id,
+      url: '/ledger/wxLedgerItem/reverse/' + ((row && row.id) || ''),
       method: 'post'
     })
   }).then((res: any) => {
@@ -369,7 +417,7 @@ function handleReverse(row: WxLedgerItem) {
     } else {
       proxy.$modal.msgError(res.msg)
     }
-  }).catch(() => {})
+  }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 导出按钮操作 */

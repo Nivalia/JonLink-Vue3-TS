@@ -6,6 +6,8 @@ export interface OrderQuejlParams extends PageDomain {
   phone?: string;
   /** 结算状态 0未结算 1已结算 */
   status?: string;
+  /** 数据来源 0手工 1Excel导入 2台账同步 */
+  sourceType?: string;
 }
 
 /** 核销管理配置信息 */
@@ -26,6 +28,7 @@ export interface WxBizOrder extends BaseEntity {
   amount?: string;
   /** 类型(字典) */
   orderType?: string;
+  sourceType?: string;
   /** 结算状态 0未结算 1已结算 */
   status?: string;
   /** 核销状态(模板推送校验) 0未核销 1已核销 */

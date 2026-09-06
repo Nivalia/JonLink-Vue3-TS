@@ -41,7 +41,7 @@
           plain
           icon="Edit"
           :disabled="single"
-          @click="handleUpdate"
+          @click="handleUpdate()"
           v-hasPermi="['ledger:insuranceType:edit']"
         >修改</el-button>
       </el-col>
@@ -51,7 +51,7 @@
           plain
           icon="Delete"
           :disabled="multiple"
-          @click="handleDelete"
+          @click="handleDelete()"
           v-hasPermi="['ledger:insuranceType:remove']"
         >删除</el-button>
       </el-col>
@@ -247,7 +247,7 @@ function handleAdd() {
 /** 修改按钮操作 */
 function handleUpdate(row: JonlinkInsuranceType) {
   reset()
-  const _id = row.id || ids.value[0]
+  const _id = (row && row.id) || ids.value[0]
   getInsuranceType(_id).then(response => {
     form.value = response.data
     open.value = true
@@ -278,13 +278,12 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row: JonlinkInsuranceType) {
-  const _ids = row.id || ids.value
+  const _ids = (row && row.id) || ids.value
   proxy.$modal.confirm('是否确认删除险种管理编号为"' + _ids + '"的数据项？').then(function() {
     return delInsuranceType(_ids)
   }).then(() => {
     getList()
-    proxy.$modal.msgSuccess("删除成功")
-  }).catch(() => {})
+    proxy.$modal.msgSuccess("删除成功") }).catch((e: any) => { if (e && e.message && e.message !== "cancel") { proxy.$modal.msgError(e.message || "操作失败"); } })
 }
 
 /** 导出按钮操作 */
